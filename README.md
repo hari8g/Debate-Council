@@ -1,6 +1,16 @@
 # North Star
 
-*North Star* — a transparent, multi-stage system that reads a public Instagram profile, stress-tests persona hypotheses through a six-agent debate council, and projects future psychological trajectories using dynamical systems mathematics. Results stream live to a React dashboard via Server-Sent Events (SSE).
+**The first answer is not the verdict. It is the opening statement.**
+
+*North Star* is a transparent, three-stage **Persona Dynamics Engine** — part of the [Theatre of Reasoning](https://github.com/hari8g/Debate-Council) research line — that treats a single LLM output as a *hypothesis to be cross-examined*, not a conclusion to be trusted.
+
+Given a public Instagram profile, North Star does not ask one model for the story and stop. It:
+
+1. **Extracts** a longitudinal signal matrix from posts, engagement, and temporal patterns — the shared evidence base.
+2. **Puts the first answer on trial** — six specialist agents, each seeded with a different theoretical lens, form independent hypotheses, issue 30 structured cross-examinations, revise under challenge, and synthesize a persona model where **surviving disagreement is preserved as signal**, not averaged away.
+3. **Hands the future to mathematics** — Ornstein–Uhlenbeck mean-reversion, narrative belief strains (SIR-style momentum), and 10,000-path Monte Carlo simulation project where the profile may be headed, with confidence that **decays honestly with horizon distance**.
+
+Every substep streams live to a React dashboard via Server-Sent Events. You watch hypotheses form, get challenged, change, merge, and finally give way to dynamical projection — observability is a first-class output, not an afterthought.
 
 Built by Hariprasad Gowrisankar · **Repository:** [github.com/hari8g/Debate-Council](https://github.com/hari8g/Debate-Council)
 
@@ -263,15 +273,27 @@ No `LLM_API_KEY`, Instagram session, or backend required. Full details: [Interac
 
 ## What North Star Does
 
-North Star answers a single question with unusual rigor: **given how someone presents themselves publicly on Instagram, what can we infer about their persona — and where might they be headed?**
+Most AI pipelines treat the first coherent answer as the answer. North Star treats it as **Round Zero**.
 
-It does this in three epistemic layers:
+The core question: *given how someone presents themselves publicly on Instagram, what can we defensibly infer about their persona — and where might they be heading?*
 
-1. **Empirical (Stage 1)** — Scrape and structure post history into a temporal signal matrix; compute derived metrics (posting rhythm, engagement slope, topic drift, emotional volatility).
-2. **Interpretive (Stage 2)** — Six LLM agents, each with a distinct theoretical lens, form hypotheses, cross-examine each other (30 directed challenges), revise under criticism, and synthesize a unified persona model.
-3. **Dynamical (Stage 3)** — Fit an Ornstein–Uhlenbeck process to post-level psychological state, discover narrative belief strains, run **10,000+ Monte Carlo simulations** with injected entropy, and generate profile-specific future narratives plus a strategic goals outlook.
+Instagram is deliberately chosen as the proving ground. The data is rich but radically underdetermined — the same posting pattern could mean a dozen different psychological drivers. A single model picks one interpretation and sounds certain. North Star is built to surface the alternatives and force each one to earn trust.
 
-Every substep emits SSE events so the user watches inference unfold — observability is a first-class output, not an afterthought.
+### Three epistemic layers
+
+| Layer | Stage | What happens |
+|-------|-------|--------------|
+| **Empirical** | Stage 1 | Ingest post history into a temporal signal matrix — captions, hashtags, engagement, posting rhythm, derived behavioural metrics. No persona inference yet; only structured evidence. |
+| **Interpretive** | Stage 2 | Six agents (psychographer, sociologist, narrative analyst, behavioural economist, temporal analyst, cultural analyst) read the same evidence independently, cross-examine in three debate rounds (30 challenges → 6 revisions → synthesis), and produce a unified `PersonaModel`. ~35–45% of initial claims are typically revised after challenge — that revision rate is itself a signal of how ambiguous the data is. |
+| **Dynamical** | Stage 3 | Map posts onto a 6D psychological state vector; fit calendar-aware Ornstein–Uhlenbeck dynamics (mean reversion toward a personal baseline); discover narrative belief strains with SIR-style momentum; run **10,000 Monte Carlo paths** coupling both models; narrate horizons (30d / 90d / 180d / 365d) with explicit epistemic limits. The LLM's job ends where the mathematics begins. |
+
+### Why the architecture matters
+
+Peer review, adversarial courts, and red teams exist for one reason: **to force a second opinion structurally motivated to disagree with the first.** North Star is that institution, implemented as software — a debate council for the first answer, followed by dynamical systems that project forward without asking a language model to guess the future in prose.
+
+The goal is not to make AI sound more uncertain. The goal is to stop it from mistaking a good story for the truth.
+
+Every substep emits SSE events so inference unfolds in real time on the dashboard — you see the trial, not just the verdict.
 
 ---
 
