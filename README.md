@@ -1,7 +1,8 @@
 # North Star
 
 *North Star* — a transparent, multi-stage system that reads a public Instagram profile, stress-tests persona hypotheses through a six-agent debate council, and projects future psychological trajectories using dynamical systems mathematics. Results stream live to a React dashboard via Server-Sent Events (SSE).
-Built by Hariprasad Gowrisankar
+
+Built by Hariprasad Gowrisankar · **Repository:** [github.com/hari8g/Debate-Council](https://github.com/hari8g/Debate-Council)
 
 > For end-to-end event flow, mathematical formulations, and module maps, see **[ARCHITECTURE_FLOW.md](./ARCHITECTURE_FLOW.md)**.  
 > For the idealized mathematical specification (worked examples, full 6×6 OU theory), see **[persona_dynamics_engine_methadology.md](./persona_dynamics_engine_methadology.md)**.
@@ -10,12 +11,18 @@ Built by Hariprasad Gowrisankar
 
 ## Table of Contents
 
+- [Getting Started](#getting-started)
+  - [1. Clone or fork the repository](#1-clone-or-fork-the-repository)
+  - [2. Requirements](#2-requirements)
+  - [3. Configure the backend](#3-configure-the-backend)
+  - [4. Build and run](#4-build-and-run)
+  - [5. See results](#5-see-results)
+    - [5A — Interactive demo (no backend)](#5a-interactive-demo-no-backend)
+    - [5B — Live analysis (real profile)](#5b-live-analysis-real-instagram-profile)
 - [What North Star Does](#what-north-star-does)
 - [Key Features](#key-features)
 - [Architecture at a Glance](#architecture-at-a-glance)
 - [Repository Structure](#repository-structure)
-- [Prerequisites](#prerequisites)
-- [Quick Start](#quick-start)
 - [Interactive Demo](#interactive-demo)
 - [Instagram Authentication](#instagram-authentication)
 - [Environment Variables](#environment-variables)
@@ -28,6 +35,220 @@ Built by Hariprasad Gowrisankar
 - [Development](#development)
 - [Troubleshooting](#troubleshooting)
 - [Related Documentation](#related-documentation)
+
+---
+
+## Getting Started
+
+Follow these steps in order. If you only want to explore the UI without API keys, skip to **[5A — Interactive demo](#5a-interactive-demo-no-backend)** after step 4 (frontend only).
+
+### 1. Clone or fork the repository
+
+**Option A — Fork (recommended for your own copy)**
+
+1. Open [https://github.com/hari8g/Debate-Council](https://github.com/hari8g/Debate-Council).
+2. Click **Fork** (top right) and create the fork under your GitHub account.
+3. Clone **your fork**:
+
+```bash
+git clone https://github.com/YOUR_USERNAME/Debate-Council.git
+cd Debate-Council
+```
+
+**Option B — Clone directly**
+
+```bash
+git clone https://github.com/hari8g/Debate-Council.git
+cd Debate-Council
+```
+
+You should see `backend/`, `frontend/`, and `README.md` at the project root.
+
+---
+
+### 2. Requirements
+
+Install the tools below **before** building. What you need depends on which path you take:
+
+| Requirement | Version | Demo only (`?demo=1`) | Live analysis (real Instagram profile) |
+|-------------|---------|----------------------|----------------------------------------|
+| **Git** | Any recent | ✅ | ✅ |
+| **Node.js** | 20+ | ✅ | ✅ |
+| **npm** | 9+ | ✅ | ✅ |
+| **Python** | 3.11+ | ❌ | ✅ |
+| **pip / venv** | — | ❌ | ✅ |
+| **LLM API key** | OpenAI-compatible | ❌ | ✅ (Stage 2 & 3) |
+| **Instagram session** | Logged-in browser account | ❌ | ✅ (recommended for real scraping) |
+| **Public Instagram profile** | URL or @handle | ❌ | ✅ (target for analysis) |
+
+**Check your versions:**
+
+```bash
+node -v    # expect v20.x or higher
+npm -v     # expect 9.x or higher
+python3 --version   # expect 3.11+ (live analysis only)
+```
+
+**Accounts and keys you must obtain (live analysis only):**
+
+1. **LLM API key** — from [OpenAI](https://platform.openai.com/) or any OpenAI-compatible provider (Anthropic via proxy, Azure OpenAI, local LiteLLM, etc.). Set `LLM_BASE_URL` and `LLM_MODEL` if not using OpenAI directly.
+2. **Instagram account** — a real account you control, used only to authenticate scraping (see [Instagram Authentication](#instagram-authentication)). Log into Instagram in **Firefox** before importing the session.
+
+---
+
+### 3. Configure the backend
+
+> **Skip this section** if you are running the [interactive demo only](#5a-interactive-demo-no-backend).
+
+#### Step 3.1 — Create the environment file
+
+```bash
+cd backend
+python3 -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+pip install -e .
+cp .env.example .env
+```
+
+#### Step 3.2 — Set required variables in `backend/.env`
+
+Open `backend/.env` in an editor. At minimum, set:
+
+```env
+# Required for Stage 2 (debate council) and Stage 3 (narrative)
+LLM_API_KEY=sk-your-key-here
+
+# Required for reliable Instagram scraping (recommended)
+INSTAGRAM_USERNAME=your_ig_username
+```
+
+| Variable | Required? | What to put |
+|----------|-----------|-------------|
+| `LLM_API_KEY` | **Yes** (live run) | Your API key |
+| `LLM_BASE_URL` | No | Default `https://api.openai.com/v1` — change for other providers |
+| `LLM_MODEL` | No | Default `gpt-4o` — use a model your provider supports |
+| `INSTAGRAM_USERNAME` | **Strongly recommended** | Instagram handle used for scraping session |
+| `INSTAGRAM_SESSION` | No | Only if session file is not in the default path |
+
+See [Environment Variables](#environment-variables) for the full list (timeouts, Monte Carlo size, fetch limits).
+
+#### Step 3.3 — Import Instagram session (recommended)
+
+Without a valid session, Instagram often returns `403 Forbidden` and post fetch fails.
+
+1. Log into Instagram in **Firefox** as the same user as `INSTAGRAM_USERNAME`.
+2. With the venv still active:
+
+```bash
+python scripts/import_instagram_session.py
+```
+
+3. Confirm the script reports a saved session under `~/.config/instaloader/session-{username}`.
+4. Keep `INSTAGRAM_USERNAME` in `.env` matching that account.
+
+Alternative (often fails): `instaloader --login=YOUR_USERNAME` — if you see `Unexpected null login result`, use the Firefox import script above.
+
+---
+
+### 4. Build and run
+
+You need **two terminals** for live analysis (one backend, one frontend). The demo needs **only the frontend terminal**.
+
+#### Terminal 1 — Backend (live analysis only)
+
+```bash
+cd backend
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+uvicorn app.main:app --reload --port 8000
+```
+
+**Verify the backend is up:** open [http://localhost:8000/api/health](http://localhost:8000/api/health). You should see JSON like:
+
+```json
+{"status":"ok","mock_mode":false,...}
+```
+
+Leave this terminal running.
+
+#### Terminal 2 — Frontend (required for all paths)
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+**Verify the frontend is up:** open [http://localhost:5173](http://localhost:5173). You should see the North Star landing page with an Instagram URL form.
+
+The Vite dev server proxies `/api` requests to `localhost:8000` automatically.
+
+#### Optional — Production build
+
+```bash
+cd frontend
+npm run build      # outputs to frontend/dist/
+npm run preview    # serves dist/ locally
+```
+
+For production you must also deploy the FastAPI backend and point the frontend API base URL accordingly.
+
+---
+
+### 5. See results
+
+There are two ways to see North Star in action. Both use the **same dashboard UI** (pipeline timeline on the left, detail panels on the right).
+
+#### 5A. Interactive demo (no backend)
+
+**Best for:** exploring the full pipeline UI with zero configuration.
+
+| Step | Action | Expected result |
+|------|--------|-----------------|
+| 1 | Ensure **Terminal 2** (`npm run dev`) is running | Frontend at [http://localhost:5173](http://localhost:5173) |
+| 2 | Open [http://localhost:5173/?demo=1](http://localhost:5173/?demo=1) | Demo landing page for `@demo_creator` |
+| 3 | Leave **Step-by-step callouts** checked; click **Start walkthrough** | Guided callouts appear; timeline highlights each substep |
+| 4 | Click **Run this step** (or press **Enter**) through each callout | Stages 1→2→3 stream in the left timeline; detail panels populate on the right |
+| 5 | When the final callout appears, click through to completion | **Full Report** tab opens with the consolidated `PersonaDynamicsReport` |
+
+No `LLM_API_KEY`, Instagram session, or backend required. Details: [Interactive Demo](#interactive-demo).
+
+---
+
+#### 5B. Live analysis (real Instagram profile)
+
+**Best for:** running the full pipeline on a public profile with LLM + Instagram.
+
+| Step | Action | Expected result |
+|------|--------|-----------------|
+| 1 | Confirm **both terminals** are running (backend `:8000`, frontend `:5173`) | Health check OK; landing page loads |
+| 2 | Open [http://localhost:5173](http://localhost:5173) | URL form with post window selector (All / 90d / 360d / 730d) |
+| 3 | Paste a **public** Instagram profile URL or `@username` | e.g. `https://www.instagram.com/somepublicuser/` |
+| 4 | Choose post collection (**All posts** recommended for richest signal) | Default is full archive |
+| 5 | Click **Begin analysis** | View switches to split dashboard; status shows **running** |
+| 6 | Watch the **Pipeline** sidebar (left) | Substages light up: Stage 1 (8 substeps) → Stage 2 (debate) → Stage 3 (projection) |
+| 7 | Click any completed substep in the timeline | Matching detail panel on the right (signal matrix, debate rounds, Monte Carlo charts, etc.) |
+| 8 | Wait for Stage 3 Monte Carlo (~60–90s for 10k paths) | Progress ticks in timeline; fan chart builds in detail panel |
+| 9 | When status shows **complete**, open the **Full Report** tab | Consolidated report with all sections; export available |
+
+**What a successful run looks like:**
+
+- **Stage 1 complete** — post count, signal matrix, derived metrics visible when clicking substeps.
+- **Stage 2 complete** — six agent cards, 30 challenges in Round 1, persona tab populated.
+- **Stage 3 complete** — phase portrait, strain cards, 10,000-path Monte Carlo fan chart, future narrative + goals.
+- **Error Console tab** — empty (or warnings only); red errors mean something failed — see [Troubleshooting](#troubleshooting).
+
+**If Stage 1 fails on Instagram:** re-check `INSTAGRAM_USERNAME` and session import ([§3.3](#step-33--import-instagram-session-recommended)). If `INSTAGRAM_USERNAME` is unset and fetch fails, the backend may fall back to synthetic demo data instead of live posts.
+
+---
+
+#### Quick reference — URLs
+
+| URL | Purpose |
+|-----|---------|
+| [http://localhost:5173](http://localhost:5173) | Landing page / live analysis |
+| [http://localhost:5173/?demo=1](http://localhost:5173/?demo=1) | Interactive guided demo |
+| [http://localhost:8000/api/health](http://localhost:8000/api/health) | Backend health check |
+| [http://localhost:8000/docs](http://localhost:8000/docs) | FastAPI Swagger UI |
 
 ---
 
@@ -146,56 +367,6 @@ persona/
     │       └── shared/InfoPopover.tsx ← Viewport-safe ⓘ tooltips
     └── package.json
 ```
-
----
-
-## Prerequisites
-
-| Requirement | Version |
-|-------------|---------|
-| Python | 3.11+ |
-| Node.js | 20+ |
-| npm | 9+ |
-| LLM API key | OpenAI-compatible (required for Stage 2 & 3) |
-| Instagram session | Required for real profile scraping (see below) |
-
-> **Demo only:** To run the [interactive demo](#interactive-demo), you need only **Node.js 20+** and `npm run dev` in `frontend/` — no Python venv, LLM key, or Instagram session.
-
----
-
-## Quick Start
-
-### 1. Backend
-
-```bash
-cd backend
-python3 -m venv .venv
-source .venv/bin/activate          # Windows: .venv\Scripts\activate
-pip install -e .
-cp .env.example .env
-# Edit .env — set LLM_API_KEY and INSTAGRAM_USERNAME at minimum
-uvicorn app.main:app --reload --port 8000
-```
-
-Verify: [http://localhost:8000/api/health](http://localhost:8000/api/health) → `{"status":"ok",...}`
-
-### 2. Frontend
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Open [http://localhost:5173](http://localhost:5173).
-
-**No backend yet?** Jump straight to the [Interactive Demo](#interactive-demo) at [http://localhost:5173/?demo=1](http://localhost:5173/?demo=1) — only the frontend dev server is required.
-
-### 3. Run a live analysis
-
-1. Paste a **public** Instagram profile URL (or username).
-2. Choose post collection: **All posts** (default), **90 days**, **360 days**, or **730 days**.
-3. Click **Begin analysis** and watch the pipeline stream in the left sidebar.
 
 ---
 
