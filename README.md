@@ -1,0 +1,627 @@
+# North Star
+
+*North Star* — a transparent, multi-stage system that reads a public Instagram profile, stress-tests persona hypotheses through a six-agent debate council, and projects future psychological trajectories using dynamical systems mathematics. Results stream live to a React dashboard via Server-Sent Events (SSE).
+Built by Hariprasad Gowrisankar
+
+> For end-to-end event flow, mathematical formulations, and module maps, see **[ARCHITECTURE_FLOW.md](./ARCHITECTURE_FLOW.md)**.  
+> For the idealized mathematical specification (worked examples, full 6×6 OU theory), see **[persona_dynamics_engine_methadology.md](./persona_dynamics_engine_methadology.md)**.
+
+---
+
+## Table of Contents
+
+- [What North Star Does](#what-north-star-does)
+- [Key Features](#key-features)
+- [Architecture at a Glance](#architecture-at-a-glance)
+- [Repository Structure](#repository-structure)
+- [Prerequisites](#prerequisites)
+- [Quick Start](#quick-start)
+- [Interactive Demo](#interactive-demo)
+- [Instagram Authentication](#instagram-authentication)
+- [Environment Variables](#environment-variables)
+- [API Reference](#api-reference)
+- [Pipeline Stages](#pipeline-stages)
+- [Frontend Dashboard](#frontend-dashboard)
+- [Stage Rerun](#stage-rerun)
+- [Mathematical Methods (Summary)](#mathematical-methods-summary)
+- [Ethical Constraints](#ethical-constraints)
+- [Development](#development)
+- [Troubleshooting](#troubleshooting)
+- [Related Documentation](#related-documentation)
+
+---
+
+## What North Star Does
+
+North Star answers a single question with unusual rigor: **given how someone presents themselves publicly on Instagram, what can we infer about their persona — and where might they be headed?**
+
+It does this in three epistemic layers:
+
+1. **Empirical (Stage 1)** — Scrape and structure post history into a temporal signal matrix; compute derived metrics (posting rhythm, engagement slope, topic drift, emotional volatility).
+2. **Interpretive (Stage 2)** — Six LLM agents, each with a distinct theoretical lens, form hypotheses, cross-examine each other (30 directed challenges), revise under criticism, and synthesize a unified persona model.
+3. **Dynamical (Stage 3)** — Fit an Ornstein–Uhlenbeck process to post-level psychological state, discover narrative belief strains, run **10,000+ Monte Carlo simulations** with injected entropy, and generate profile-specific future narratives plus a strategic goals outlook.
+
+Every substep emits SSE events so the user watches inference unfold — observability is a first-class output, not an afterthought.
+
+---
+
+## Key Features
+
+| Area | Capability |
+|------|------------|
+| **Data ingestion** | Full-archive fetch (default) or bounded windows (90 / 360 / 730 days); multi-source Instagram pagination (timeline, feed, clips); deduplication by media ID |
+| **Enrichment** | Comments, liker samples, stories, highlights; capture quality score with explainer |
+| **Debate council** | 6 agents × 3 rounds; confidence calibration against measurable signals |
+| **Projection** | Calendar-aware OU fit; adaptive SIR belief strains; coupled Monte Carlo; fan charts and scenario clusters |
+| **Narrative** | Horizon narratives (30d / 90d / 6mo / long) + strategic future-goals agent |
+| **Live UI** | Pipeline timeline, substep detail panels, interactive math explainers, consolidated report + HTML export |
+| **Interactive demo** | Full pipeline walkthrough at `?demo=1` — same UI as live analysis, no backend/API key; guided callouts with timeline spotlighting |
+| **Stage rerun** | Re-execute Stage 1, 2, or 3 independently without restarting the full job |
+| **Resilience** | LLM retries, Instagram session bypass for revoked GraphQL, error console with full tracebacks |
+
+---
+
+## Architecture at a Glance
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  React + Vite (localhost:5173)                                  │
+│  UrlForm → analysisStore (Zustand) ← SSE ← PipelineTimeline     │
+└────────────────────────────┬────────────────────────────────────┘
+                             │ HTTP / SSE
+┌────────────────────────────▼────────────────────────────────────┐
+│  FastAPI (localhost:8000)                                       │
+│  POST /api/analyze  ·  POST /api/analyze/{id}/rerun/{stage}     │
+│  GET  /api/analyze/{id}/stream  ·  GET /api/analyze/{id}        │
+└────────────────────────────┬────────────────────────────────────┘
+                             │
+        ┌────────────────────┼────────────────────┐
+        ▼                    ▼                    ▼
+   Instagram            OpenAI-compat LLM     NumPy/SciPy
+   (Instaloader +       (Stage 2 debate,      (OU fit, Monte
+    REST v1 API)          Stage 3 narrative)    Carlo, SIR)
+```
+
+**Final artifact:** `PersonaDynamicsReport` — JSON containing signal matrix, debate record, persona model, OU parameters, phase portrait, belief strains, Monte Carlo distributions, and future narrative.
+
+---
+
+## Repository Structure
+
+```
+persona/
+├── README.md                          ← This file
+├── ARCHITECTURE_FLOW.md               ← Detailed event flow + math references
+├── persona_dynamics_engine_methadology.md  ← Full mathematical specification
+│
+├── backend/
+│   ├── app/
+│   │   ├── main.py                    ← FastAPI routes
+│   │   ├── config.py                  ← Settings from .env
+│   │   ├── jobs/store.py              ← Job state, SSE pub/sub, rerun
+│   │   ├── streaming/events.py        ← Pipeline event types
+│   │   ├── llm/client.py              ← Async LLM with retries
+│   │   ├── models/                    ← Pydantic schemas (stage1/2/3, report)
+│   │   └── pipeline/
+│   │       ├── orchestrator.py        ← run_pipeline, rerun_stage, build_report
+│   │       ├── stage1_extract.py      ← Profile signal extraction
+│   │       ├── instagram_client.py    ← REST pagination (bypasses GraphQL 403)
+│   │       ├── profile_enrichment.py  ← Comments, likers, quality score
+│   │       ├── stage2_debate.py       ← Multi-agent debate council
+│   │       ├── confidence_calibration.py
+│   │       ├── stage3_project.py      ← Stage 3 orchestration
+│   │       ├── stage3_state.py        ← 6D state history + fusion
+│   │       ├── stage3_ou.py           ← OU parameter fit + phase portrait
+│   │       ├── stage3_monte.py        ← Monte Carlo (10k+ paths)
+│   │       ├── belief_strain_engine.py
+│   │       └── behavioral_taxonomy.py
+│   ├── scripts/import_instagram_session.py
+│   ├── .env.example
+│   └── pyproject.toml
+│
+└── frontend/
+    ├── src/
+    │   ├── demo/                      ← Interactive demo (?demo=1) — see [Interactive Demo](#interactive-demo)
+    │   │   ├── NorthStarDemo.tsx      ← Landing + walkthrough shell
+    │   │   ├── DemoCalloutOverlay.tsx ← Guided callout UI
+    │   │   ├── demoCallouts.ts        ← Callout copy + pipeline state labels
+    │   │   ├── demoRunner.ts          ← Event replay, pause, guided mode
+    │   │   ├── buildDemoFixture.ts    ← @demo_creator report fixture
+    │   │   └── buildDemoEvents.ts     ← Ordered PipelineEvent script
+    │   ├── App.tsx                    ← Routes ?demo=1 → NorthStarDemo
+    │   ├── api/client.ts              ← REST client
+    │   ├── lib/
+    │   │   ├── analysisStreamManager.ts  ← Shared SSE for analyze + rerun
+    │   │   ├── exportInteractiveReport.ts
+    │   │   └── substepExplain.ts
+    │   ├── store/analysisStore.ts     ← Zustand SSE reducer
+    │   ├── hooks/useAnalysisStream.ts
+    │   └── components/
+    │       ├── input/UrlForm.tsx
+    │       ├── pipeline/              ← Timeline, DetailPanel, ErrorConsole
+    │       ├── stage1/                ← Signal extraction UI
+    │       ├── stage2/                ← Debate council UI
+    │       ├── stage3/                ← Projection UI + MathExplainer
+    │       ├── report/                ← Consolidated report
+    │       └── shared/InfoPopover.tsx ← Viewport-safe ⓘ tooltips
+    └── package.json
+```
+
+---
+
+## Prerequisites
+
+| Requirement | Version |
+|-------------|---------|
+| Python | 3.11+ |
+| Node.js | 20+ |
+| npm | 9+ |
+| LLM API key | OpenAI-compatible (required for Stage 2 & 3) |
+| Instagram session | Required for real profile scraping (see below) |
+
+> **Demo only:** To run the [interactive demo](#interactive-demo), you need only **Node.js 20+** and `npm run dev` in `frontend/` — no Python venv, LLM key, or Instagram session.
+
+---
+
+## Quick Start
+
+### 1. Backend
+
+```bash
+cd backend
+python3 -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+pip install -e .
+cp .env.example .env
+# Edit .env — set LLM_API_KEY and INSTAGRAM_USERNAME at minimum
+uvicorn app.main:app --reload --port 8000
+```
+
+Verify: [http://localhost:8000/api/health](http://localhost:8000/api/health) → `{"status":"ok",...}`
+
+### 2. Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Open [http://localhost:5173](http://localhost:5173).
+
+**No backend yet?** Jump straight to the [Interactive Demo](#interactive-demo) at [http://localhost:5173/?demo=1](http://localhost:5173/?demo=1) — only the frontend dev server is required.
+
+### 3. Run a live analysis
+
+1. Paste a **public** Instagram profile URL (or username).
+2. Choose post collection: **All posts** (default), **90 days**, **360 days**, or **730 days**.
+3. Click **Begin analysis** and watch the pipeline stream in the left sidebar.
+
+---
+
+## Interactive Demo
+
+The interactive demo replays the **full North Star dashboard** — the same `AnalysisShell`, pipeline timeline, substep detail panels, debate council, phase portraits, Monte Carlo charts, goals outlook, and consolidated report — **without** a running backend, LLM API key, or Instagram session.
+
+### Launch
+
+| Entry point | URL / action |
+|-------------|--------------|
+| Direct link | [http://localhost:5173/?demo=1](http://localhost:5173/?demo=1) |
+| Landing page | Click **Watch the interactive demo** on `UrlForm` |
+| Query param | `?demo=1` on any frontend route (handled in `App.tsx`) |
+
+Requires only `npm run dev` in `frontend/`. The backend can be stopped.
+
+### Demo profile
+
+The walkthrough uses a fixed fixture profile:
+
+| Field | Value |
+|-------|-------|
+| Username | `@demo_creator` |
+| Profile URL | `https://www.instagram.com/demo_creator/` |
+| Posts analysed | 72 (full archive) |
+| Debate council | 6 agents, 30 challenges, 6 defenses |
+| Belief strains | 3 narrative themes (politics, institutional justice, wellness) |
+| Monte Carlo | 10,000 integrated paths |
+| Job ID | `demo-walkthrough` |
+
+Fixture data is generated in `frontend/src/demo/buildDemoFixture.ts` and matches the `PersonaDynamicsReport` schema used in production.
+
+### How it works
+
+The demo does **not** mock a simplified UI. It replays a scripted sequence of `PipelineEvent` objects (identical to backend SSE events) into `analysisStore.handleEvent()`, so every live component renders real data:
+
+```
+buildDemoFixture()  →  full report + intermediate payloads
+buildDemoEvents()   →  ordered PipelineEvent[] (stages, substeps, progress ticks)
+demoRunner.ts       →  replay with timing, pause, guided callouts
+analysisStore       →  same reducer as live SSE stream
+AnalysisShell       →  same timeline + detail panel as production
+```
+
+Individual agent hypotheses, challenges, MC progress ticks, and dynamic substep IDs (`s2_agent_*`, `s2_ch_*`, `s3_strain_*`) stream between guided pauses exactly as in a live run.
+
+### Guided walkthrough (default)
+
+With **Step-by-step callouts** enabled (default), the demo pauses at **45 guided moments**:
+
+| Moment type | Count | When |
+|-------------|-------|------|
+| Stage intro | 3 | Before each stage starts |
+| Substep intro | 19 | Before each canonical substep runs |
+| Substep review | 19 | After each canonical substep completes |
+| Stage wrap-up | 3 | After each stage completes |
+| Analysis complete | 1 | Before opening Full Report |
+
+**Intro callout** — explains what *will* run; click **Run this step** (or **Enter**) to execute.  
+**Review callout** — prompts you to inspect the output panel; click **I've reviewed this** to continue.
+
+Each callout includes:
+
+- **Pipeline state** — e.g. `Stage 2 · Multi-agent debate council · Round 1 — Challenges (2/5)`
+- **Status badge** — `Up next — substep will run`, `Complete — inspect the output panel`, etc.
+- **Step counter** — `Step 12 of 45`
+- **What happens next / what just ran** — plain-language description
+- **Look for in the UI** — which panel or visualization to watch
+- **Why it matters** — role of the step in the pipeline
+- **Inputs / outputs** — data flowing in and out
+- **Deep dive** — expandable technical explanation
+
+### Visual highlighting
+
+While a callout is open:
+
+| UI area | Effect |
+|---------|--------|
+| **Timeline — up next** | Amber pulse + “Up next in demo” label on the target substep |
+| **Timeline — review** | Green pulse + “Review output →” on the completed substep |
+| **Stage headers** | Highlighted at stage intro and stage-complete moments |
+| **Detail panel** | Focus ring around the right-hand panel |
+| **Auto-scroll** | Timeline scrolls to the spotlighted substep |
+
+The demo also pre-selects the relevant substep (or Full Report tab at completion) so the detail panel aligns with the callout.
+
+### Controls
+
+| Control | Description |
+|---------|-------------|
+| **Speed** | Default **0.15×**; options 0.1×–2×. Guided mode also applies a 2.5× delay multiplier between events. |
+| **Step-by-step callouts** | Toggle on landing page; uncheck to run continuously without pauses |
+| **Run this step / I've reviewed this** | Advance to the next guided moment |
+| **Enter** | Keyboard shortcut to advance |
+| **Run without pauses** | Disables guided mode for the rest of the session |
+| **Pause / Resume** | Pauses event replay between callouts; resume continues from the same event index |
+| **Exit demo** | Clears store and removes `?demo=1` from the URL |
+| **Stage Rerun (↺)** | Works in demo mode — replays that stage’s events via `rerunDemoStage()` |
+
+Header badge **Guided · intro + review** appears while step-by-step mode is active.
+
+### Demo vs live analysis
+
+| | Demo | Live |
+|---|------|------|
+| Backend | Not required | FastAPI on `:8000` |
+| LLM / Instagram | Not required | Required for real profiles |
+| Data source | `buildDemoFixture.ts` | Instagram + LLM APIs |
+| Event transport | In-process replay | SSE from `/api/analyze/{id}/stream` |
+| UI components | Identical | Identical |
+| Stage rerun | Replays fixture events | `POST /api/analyze/{id}/rerun/{stage}` |
+
+### Source files
+
+| File | Role |
+|------|------|
+| `frontend/src/demo/NorthStarDemo.tsx` | Demo landing page, speed/guided controls, wraps `AnalysisShell` |
+| `frontend/src/demo/DemoCalloutOverlay.tsx` | Callout dialog, deep-dive expand, keyboard handling |
+| `frontend/src/demo/demoCallouts.ts` | Callout copy, pipeline state strings, guided moment ordering |
+| `frontend/src/demo/demoRunner.ts` | Replay engine: speed, pause/resume, guided intro/review checkpoints, highlight state |
+| `frontend/src/demo/buildDemoFixture.ts` | Full `@demo_creator` `PersonaDynamicsReport` + intermediate payloads |
+| `frontend/src/demo/buildDemoEvents.ts` | SSE-like event script for all stages and substeps |
+| `frontend/src/components/AnalysisShell.tsx` | Shared analysis layout (live + demo) |
+| `frontend/src/App.tsx` | Routes `?demo=1` → `NorthStarDemo` |
+
+---
+
+## Instagram Authentication
+
+Instagram frequently blocks programmatic login and revoked GraphQL `doc_id`s. This project **bypasses GraphQL** by using Instagram's v1 REST endpoints in `instagram_client.py` (`/api/v1/feed/user/`, `/api/v1/clips/user/`).
+
+### Option A — Import browser session (recommended)
+
+1. Log into Instagram in **Firefox** as the account you will use for scraping.
+2. Run:
+
+```bash
+cd backend
+source .venv/bin/activate
+python scripts/import_instagram_session.py
+```
+
+3. Add to `.env`:
+
+```env
+INSTAGRAM_USERNAME=your_ig_username
+```
+
+4. Restart uvicorn.
+
+Session file: `~/.config/instaloader/session-{username}`
+
+### Option B — CLI login (often fails)
+
+```bash
+instaloader --login=YOUR_USERNAME
+```
+
+If you see `Unexpected null login result`, use Option A.
+
+### Without Instagram session
+
+If extraction fails and `INSTAGRAM_USERNAME` is **not** set, the pipeline falls back to **demo data**. If `INSTAGRAM_USERNAME` **is** set, extraction errors propagate (no silent demo).
+
+---
+
+## Environment Variables
+
+Copy `backend/.env.example` to `backend/.env`.
+
+### LLM
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `LLM_API_KEY` | — | OpenAI-compatible API key (**required** for debate + narrative) |
+| `LLM_BASE_URL` | `https://api.openai.com/v1` | API base URL |
+| `LLM_MODEL` | `gpt-4o` | Model name |
+| `LLM_CONNECT_TIMEOUT` | `45` | Connect timeout (seconds) |
+| `LLM_READ_TIMEOUT` | `180` | Read timeout (seconds) |
+| `LLM_MAX_RETRIES` | `4` | Retry attempts on failure (negative values clamped to 4) |
+
+### Instagram
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `INSTAGRAM_USERNAME` | — | Account used for authenticated scraping |
+| `INSTAGRAM_SESSION` | — | Optional full path to session file |
+| `INSTAGRAM_ENRICH_POSTS` | `10` | Recent posts deep-scanned for comments/likers |
+| `INSTAGRAM_MAX_COMMENTS_PER_POST` | `30` | Comment cap per enriched post |
+| `INSTAGRAM_MAX_LIKERS_PER_POST` | `24` | Liker sample cap per post |
+| `INSTAGRAM_FEED_PAGE_SIZE` | `50` | Posts per pagination page |
+| `INSTAGRAM_MAX_FEED_PAGES` | `120` | Max pages for lookback-window fetch (~6k posts/source) |
+| `INSTAGRAM_MAX_FEED_PAGES_ALL` | `500` | Max pages for full-archive fetch |
+
+### Projection / Monte Carlo
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PROJECTION_HORIZONS_DAYS` | `30,90,180,365` | Comma-separated horizon days |
+| `PROJECTION_CONFIDENCE_TAU` | `90` | Exponential confidence decay constant (days) |
+| `MONTE_CARLO_SIMULATIONS` | `10000` | Paths per run (clamped 10,000–25,000) |
+
+---
+
+## API Reference
+
+Base URL: `http://localhost:8000`
+
+| Method | Path | Body / params | Description |
+|--------|------|---------------|-------------|
+| `GET` | `/api/health` | — | Liveness; returns `mock_mode` flag |
+| `POST` | `/api/analyze` | `{ url, fetch_all_posts?, lookback_days? }` | Start full pipeline; returns `{ job_id }` |
+| `POST` | `/api/analyze/{job_id}/rerun/{stage}` | — | Re-run stage `1`, `2`, or `3`; returns `{ job_id }` |
+| `GET` | `/api/analyze/{job_id}/stream` | — | SSE stream of `PipelineEvent` JSON |
+| `GET` | `/api/analyze/{job_id}` | — | Job status + full report when complete |
+
+### Analyze request
+
+```json
+{
+  "url": "https://www.instagram.com/username/",
+  "fetch_all_posts": true,
+  "lookback_days": 365
+}
+```
+
+- `fetch_all_posts: true` (default) — paginate until exhausted (up to `INSTAGRAM_MAX_FEED_PAGES_ALL` pages per source).
+- `fetch_all_posts: false` — only posts within `lookback_days` (90–730).
+
+### SSE event types
+
+| Event | Purpose |
+|-------|---------|
+| `STAGE_START` | Stage begins |
+| `STAGE_RERUN_START` | Stage rerun initiated |
+| `SUBSTEP_START` / `SUBSTEP_PROGRESS` / `SUBSTEP_COMPLETE` | Substep lifecycle |
+| `STAGE_COMPLETE` | Stage summary payload |
+| `REPORT_UPDATE` | Updated report after stage rerun (SSE stays open) |
+| `ERROR` | Failure with stage, substep, traceback |
+| `JOB_COMPLETE` | Full report; closes SSE stream |
+
+---
+
+## Pipeline Stages
+
+### Stage 1 — Profile Signal Extraction
+
+| Substep | Description |
+|---------|-------------|
+| `s1_resolve` | Parse username from URL |
+| `s1_metadata` | Profile bio, counts, verification |
+| `s1_posts` | Paginated post fetch (lookback or full archive) |
+| `s1_stories` | Active stories + highlights |
+| `s1_engagement` | Comment/liker enrichment on recent posts |
+| `s1_matrix` | Chronological `ProfileSignalMatrix` |
+| `s1_derived` | Posting regularity, slopes, topic drift, bursts |
+| `s1_summary` | Human-readable summary + post samples |
+
+**Outputs:** `ProfileSignalMatrix`, `DerivedSignals`, `SignalSummary`
+
+### Stage 2 — Multi-Agent Debate Council
+
+| Substep | Description |
+|---------|-------------|
+| `s2_agents` | Six parallel agent hypotheses |
+| `s2_challenge` | 30 cross-examinations (6×5 directed pairs) |
+| `s2_defense` | Each agent revises under criticism |
+| `s2_synthesis` | Synthesis claim cards + debate trajectory charts |
+| `s2_persona` | Unified persona model (separate UI tab) |
+
+**Agents:** Psychographer, Sociologist, Narrative Analyst, Behavioural Economist, Temporal Analyst, Cultural Analyst.
+
+**Outputs:** `AgentHypothesis[]`, `DebateRecord`, `PersonaModel`
+
+### Stage 3 — Future State Projection
+
+| Substep | Description |
+|---------|-------------|
+| `s3_state` | 6D state vector per post; fused simulation anchor |
+| `s3_ou` | Ornstein–Uhlenbeck parameter fit |
+| `s3_portrait` | Phase portrait (valence×arousal, etc.) |
+| `s3_strains` | Adaptive narrative themes + SIR momentum |
+| `s3_monte` | 10,000+ Monte Carlo paths with entropy injection |
+| `s3_narrative` | Future narrative + strategic goals outlook |
+
+**Outputs:** `OuParameters`, `PhasePortrait`, `PersonalR0Estimate[]`, `FutureStateDistribution`, `FutureStateNarrative`
+
+---
+
+## Frontend Dashboard
+
+### Layout
+
+- **Landing** — URL form with segmented post-collection control (All / 90d / 360d / 730d) and link to the [interactive demo](#interactive-demo).
+- **Analysis view** — Split panel: **Pipeline timeline** (left) + **Detail panel** (right).
+- **Detail tabs** — Live (substep views), Full Report (when complete), Error Console.
+- **Demo view** (`?demo=1`) — Same analysis layout with guided callout overlay and timeline spotlighting (see [Interactive Demo](#interactive-demo)).
+
+### Notable UI components
+
+| Component | Purpose |
+|-----------|---------|
+| `SignalMatrixFlow` | Interactive 3-step matrix builder explainer |
+| `EngagementDepthPanel` | Phased enrichment walkthrough |
+| `AgentCouncilIntroPanel` | Six-agent council rationale |
+| `Round1LivePanel` | Live challenge matrix (30 cross-examinations) |
+| `MathExplainer` | Expandable step-by-step math for each Stage 3 substep |
+| `MonteCarloCharts` | Fan chart, audit panel, entropy source list, scenarios |
+| `FutureNarrative` | Horizon narratives + strategic goals agent output |
+| `InfoPopover` | Viewport-clamped ⓘ tooltips (no off-screen popovers) |
+
+### Report export
+
+When analysis completes, the **Full Report** tab and `exportInteractiveReport.ts` produce a standalone interactive HTML artifact.
+
+---
+
+## Stage Rerun
+
+Each stage in the pipeline sidebar exposes a **Rerun** button (↺) when that stage has completed and no job is currently running.
+
+| Stage | What rerun does | Downstream effect |
+|-------|-------------------|-------------------|
+| **1** | Re-fetch profile, posts, matrix, derived signals | Clears Stage 2 & 3 data in report |
+| **2** | Re-run full debate council | Clears Stage 3 projection data |
+| **3** | Re-run OU, strains, Monte Carlo, narrative | Keeps Stage 1 & 2 |
+
+**Flow:**
+
+1. User clicks **Rerun** → `POST /api/analyze/{job_id}/rerun/{stage}`
+2. Backend emits `STAGE_RERUN_START`, then normal substep events
+3. On completion → `REPORT_UPDATE` with merged report (SSE **stays open**)
+4. Frontend `analysisStreamManager` reconnects SSE if needed after initial `JOB_COMPLETE`
+
+**Prerequisites:** Stage 2 rerun requires Stage 1 complete; Stage 3 requires Stage 2 (persona model present).
+
+In **demo mode** (`?demo=1`), rerun buttons call `rerunDemoStage()` and replay fixture events for that stage instead of hitting the API.
+
+---
+
+## Mathematical Methods (Summary)
+
+| Method | Role |
+|--------|------|
+| **Derived signals** | CV-based posting regularity, linear slopes, Jaccard topic drift, burst detection |
+| **6D state vector** | Valence, arousal, stability, connectivity, engagement, ideological — per post with calendar Δt |
+| **OU process** | \(d\mathbf{x} = -\boldsymbol{\alpha}(\mathbf{x}-\mathbf{x}^*)dt + \mathbf{B}\mathbf{u}\,dt + \boldsymbol{\sigma}\,d\mathbf{W}\) |
+| **Belief strains** | Hashtag/caption theme discovery; momentum + optional SIR fit (\(R_0 = \beta/\gamma\)) |
+| **Monte Carlo** | ≥10,000 paths; lognormal perturbation of α, σ, inputs; Gaussian anchor noise; coupled SIR; engagement shocks |
+| **Projection quality** | \(Q(H) = Q_{\text{overall}} \cdot e^{-H/\tau}\) from data coverage, OU R², strain stability, state agreement |
+
+Full derivations: **[ARCHITECTURE_FLOW.md](./ARCHITECTURE_FLOW.md)** §4–6 and **[persona_dynamics_engine_methadology.md](./persona_dynamics_engine_methadology.md)**.
+
+---
+
+## Ethical Constraints
+
+North Star is **interpretive intelligence**, not clinical diagnosis.
+
+- **Public profiles only** — no private account access without authorization
+- **No clinical diagnostic language** — ethical flag enforced in every report
+- **Explicit uncertainty** — confidence scores, epistemic limits, projection quality decay
+- **Speculative claims flagged** — confidence floors and `genuine_uncertainties` section
+- **In-memory processing** — job state is not persisted to disk by default
+- **Automatic warnings** when data quality is low (`limited_data_warning`, sparse post flags)
+
+---
+
+## Development
+
+### Backend tests
+
+```bash
+cd backend
+source .venv/bin/activate
+pip install -e ".[dev]"
+pytest
+```
+
+### Frontend build
+
+```bash
+cd frontend
+npm run build      # tsc + vite production build
+npm run preview    # serve dist/
+```
+
+### Proxy
+
+Vite dev server proxies `/api` to `localhost:8000` (see `frontend/vite.config.ts`).
+
+### Key design principles
+
+1. **Observability first** — every substep streams progress to the UI
+2. **Separation of epistemic layers** — empirical → interpretive → dynamical
+3. **Honest uncertainty** — Monte Carlo ensembles, confidence decay, quality scores
+4. **Modular stages** — independent rerun without full pipeline restart
+
+---
+
+## Troubleshooting
+
+| Symptom | Likely cause | Fix |
+|---------|--------------|-----|
+| `403 Forbidden` on Instagram | Missing/expired session or GraphQL block | Import Firefox session; project uses REST bypass |
+| `LLM API unreachable after -5 attempts` | Negative `LLM_MAX_RETRIES` in `.env` | Set `LLM_MAX_RETRIES=4` (or 1–10) |
+| `ConnectTimeout` on LLM | Slow network/VPN | Increase `LLM_CONNECT_TIMEOUT=60` |
+| Few posts collected vs profile total | API restrictions or rate limits | Use authenticated session; try fetch-all mode |
+| Monte Carlo slow (~60–90s) | 10k paths × 365 days is CPU-intensive | Expected; progress streams in UI |
+| Stage rerun returns 409 | Another stage already running | Wait for current run to finish |
+| ⓘ popover clipped | Old build | Ensure latest `InfoPopover` (portal + viewport clamp) |
+| Demo callout stuck / won't advance | Paused replay or aborted mid-step | Click **Run this step** or **Resume**; reload `?demo=1` to restart |
+| Demo timeline not highlighting | Not in guided mode | Enable **Step-by-step callouts** on landing, or check header for **Guided · intro + review** badge |
+
+---
+
+## Related Documentation
+
+| Document | Contents |
+|----------|----------|
+| [ARCHITECTURE_FLOW.md](./ARCHITECTURE_FLOW.md) | End-to-end event flow, SSE architecture, per-stage math, module map, rerun flow |
+| [persona_dynamics_engine_methadology.md](./persona_dynamics_engine_methadology.md) | Full mathematical specification with worked examples |
+| [backend/.env.example](./backend/.env.example) | All configurable environment variables |
+| [frontend/src/demo/](./frontend/src/demo/) | Interactive demo implementation (`?demo=1`) |
+
+---
+
+*North Star · Persona Dynamics Engine · v0.1.0*
