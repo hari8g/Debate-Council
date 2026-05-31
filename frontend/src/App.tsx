@@ -4,7 +4,8 @@ import { AnalysisShell } from './components/AnalysisShell';
 import { NorthStarDemo } from './demo/NorthStarDemo';
 
 function isDemoMode() {
-  return new URLSearchParams(window.location.search).get('demo') === '1';
+  const demo = new URLSearchParams(window.location.search).get('demo');
+  return demo === '1' || demo === 'debate';
 }
 
 function App() {

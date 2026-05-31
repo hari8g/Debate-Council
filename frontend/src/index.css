@@ -242,3 +242,127 @@ h3, h4 {
   outline: 2px solid rgba(0, 113, 227, 0.25);
   outline-offset: 4px;
 }
+
+/* ── Interactive demo ── */
+.demo-landing-mesh {
+  background:
+    radial-gradient(ellipse 90% 70% at 15% 8%, rgba(0, 113, 227, 0.18), transparent 58%),
+    radial-gradient(ellipse 80% 60% at 85% 12%, rgba(88, 86, 214, 0.16), transparent 55%),
+    radial-gradient(ellipse 70% 50% at 50% 95%, rgba(52, 199, 89, 0.12), transparent 50%),
+    radial-gradient(ellipse 60% 40% at 70% 60%, rgba(255, 149, 0, 0.08), transparent 45%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.6) 0%, var(--color-bg-muted) 100%);
+}
+
+.demo-cta {
+  background: linear-gradient(135deg, #0071e3 0%, #5856d6 50%, #0071e3 100%);
+  background-size: 200% 200%;
+  animation: demo-cta-shimmer 4s ease infinite;
+}
+
+@keyframes demo-cta-shimmer {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.demo-cinema-curtain {
+  background:
+    radial-gradient(ellipse 100% 80% at 50% 0%, rgba(0, 113, 227, 0.12), transparent 55%),
+    radial-gradient(ellipse 80% 60% at 20% 100%, rgba(88, 86, 214, 0.1), transparent 50%),
+    rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(12px) saturate(1.2);
+}
+
+.demo-cinema-curtain-card {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.92) 100%);
+  backdrop-filter: blur(20px);
+}
+
+.demo-cinema-curtain-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(0, 113, 227, 0.06), rgba(88, 86, 214, 0.04), transparent 60%);
+  pointer-events: none;
+}
+
+.demo-top-chrome {
+  animation: demo-chrome-enter 0.35s ease-out;
+}
+
+@keyframes demo-chrome-enter {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.demo-narration-bar {
+  animation: demo-hud-enter 0.5s ease-out;
+}
+
+.demo-narration-mesh {
+  background:
+    linear-gradient(105deg, rgba(0, 113, 227, 0.06) 0%, transparent 35%),
+    radial-gradient(ellipse 80% 100% at 100% 0%, rgba(88, 86, 214, 0.08), transparent 55%),
+    radial-gradient(ellipse 60% 80% at 0% 100%, rgba(52, 199, 89, 0.05), transparent 50%);
+}
+
+.demo-narration-debate {
+  border-top: 2px solid rgba(88, 86, 214, 0.35);
+}
+
+.demo-debate-rail {
+  animation: demo-hud-enter 0.55s ease-out 0.1s both;
+}
+
+.demo-cinema-hud {
+  animation: demo-hud-enter 0.5s ease-out;
+}
+
+@keyframes demo-hud-enter {
+  from { opacity: 0; transform: translate(-50%, -8px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+.demo-cinema-progress-fill {
+  background: linear-gradient(90deg, var(--color-chart-1), var(--color-chart-2), var(--color-chart-3));
+}
+
+.demo-interactive-callout {
+  border-left: 3px solid var(--color-accent);
+}
+
+.demo-interactive-callout::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, rgba(0, 113, 227, 0.05), transparent 40%);
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+.demo-cinema-callout {
+  border-left: 3px solid var(--color-accent);
+}
+
+.demo-cinema-callout::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, rgba(0, 113, 227, 0.04), transparent 40%);
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+.demo-cinema-finale {
+  background:
+    radial-gradient(ellipse 90% 70% at 50% 30%, rgba(0, 113, 227, 0.14), transparent 55%),
+    radial-gradient(ellipse 70% 50% at 80% 80%, rgba(88, 86, 214, 0.1), transparent 50%),
+    rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(10px) saturate(1.15);
+}
+
+.demo-cinema-finale-card {
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.94) 100%);
+  backdrop-filter: blur(24px);
+}

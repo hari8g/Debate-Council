@@ -5,7 +5,13 @@ import { PipelineTimeline } from './pipeline/PipelineTimeline';
 import { DetailPanel } from './pipeline/DetailPanel';
 import { cn } from '../lib/utils';
 
-export function AnalysisShell({ headerExtra }: { headerExtra?: React.ReactNode }) {
+export function AnalysisShell({
+  headerExtra,
+  topSlot,
+}: {
+  headerExtra?: React.ReactNode;
+  topSlot?: React.ReactNode;
+}) {
   const status = useAnalysisStore((s) => s.status);
   const error = useAnalysisStore((s) => s.error);
   const errorLog = useAnalysisStore((s) => s.errorLog);
@@ -33,8 +39,8 @@ export function AnalysisShell({ headerExtra }: { headerExtra?: React.ReactNode }
         <div className="flex items-center gap-3">
           <h1 className="side-heading text-[var(--color-text)]">North Star</h1>
           {isDemoMode && (
-            <span className="rounded-full bg-[var(--color-chart-2)]/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--color-chart-2)]">
-              Demo walkthrough
+            <span className="rounded-full bg-gradient-to-r from-[var(--color-chart-1)]/15 to-[var(--color-chart-2)]/15 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--color-chart-2)]">
+              Product demo
             </span>
           )}
         </div>
@@ -65,7 +71,9 @@ export function AnalysisShell({ headerExtra }: { headerExtra?: React.ReactNode }
         </div>
       </header>
 
-      <main className="flex flex-1 flex-col lg:flex-row">
+      {topSlot}
+
+      <main className="flex min-h-0 flex-1 flex-col lg:flex-row">
         <aside className="w-full border-b border-[var(--color-border-subtle)] bg-[var(--color-bg-muted)]/40 p-4 lg:w-[35%] lg:border-b-0 lg:border-r lg:border-[var(--color-border-subtle)]">
           <PipelineTimeline />
         </aside>

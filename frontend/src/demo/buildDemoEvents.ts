@@ -255,7 +255,7 @@ export function buildDemoEvents(fixture = getDemoFixture()): PipelineEvent[] {
   events.push(evt('SUBSTEP_COMPLETE', { stage: 3, id: 's3_strains', payload: p.s3_strains }, bump(0.1)));
 
   events.push(evt('SUBSTEP_START', { stage: 3, id: 's3_monte', label: 'Monte Carlo simulation' }, bump(0.05)));
-  const mcSteps = [2000, 4000, 6000, 8000, 10000];
+  const mcSteps = [1000, 2000, 3500, 5000, 6500, 7500, 8500, 9200, 9600, 10000];
   mcSteps.forEach((paths, i) => {
     events.push(
       evt(
@@ -315,6 +315,15 @@ export function eventsForStage(allEvents: PipelineEvent[], stage: number): Pipel
     if (inStage && e.type === 'STAGE_COMPLETE' && e.data.stage === stage) break;
   }
   return out;
+}
+
+/** Stage 2 only — used by the interactive debate council demo (Stage 1 pre-seeded). */
+export function buildDebateCouncilEvents(fixture = getDemoFixture()): PipelineEvent[] {
+  return eventsForStage(buildDemoEvents(fixture), 2);
+}
+
+export function buildStage1SeedEvents(fixture = getDemoFixture()): PipelineEvent[] {
+  return eventsForStage(buildDemoEvents(fixture), 1);
 }
 
 export function rerunEventsForStage(stage: number, fixture = getDemoFixture()): PipelineEvent[] {

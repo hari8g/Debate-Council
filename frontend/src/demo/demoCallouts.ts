@@ -1,4 +1,5 @@
 import type { PipelineEvent } from '../types/report';
+import { AGENT_LABELS } from '../types/report';
 
 export type DemoHighlightMode = 'up_next' | 'running' | 'review' | 'stage' | 'stage_done' | 'complete';
 
@@ -48,7 +49,7 @@ const CANONICAL_SUBSTEPS = new Set([
   's3_narrative',
 ]);
 
-const STAGE_NAMES: Record<number, string> = {
+export const STAGE_NAMES: Record<number, string> = {
   1: 'Profile signal extraction',
   2: 'Multi-agent debate council',
   3: 'Future state projection',
@@ -487,6 +488,57 @@ export function reviewCalloutFromEvent(event: PipelineEvent): DemoCallout | null
     badge: meta.badge,
     ...baseMeta(`${id}_review`),
   };
+}
+
+export function interactiveReviewCalloutFromEvent(event: PipelineEvent): DemoCallout | null {
+  const canonical = reviewCalloutFromEvent(event);
+  if (canonical) return canonical;
+
+  if (event.type !== 'SUBSTEP_COMPLETE') return null;
+  const id = String(event.data.id ?? '');
+
+  if (id.startsWith('s2_defense_')) {
+    const agent = id.replace('s2_defense_', '');
+    const label = AGENT_LABELS[agent] ?? agent;
+    return {
+      kind: 'review',
+      stage: 2,
+      substepId: 's2_defense',
+      title: `Review · ${label} revised hypothesis`,
+      pipelineState: `Stage 2 · Round 2 · ${label} (6/6 agents revising)`,
+      stateLabel: 'Complete — inspect the output panel',
+      doing: `${label} absorbed all incoming challenges and published a revised claim. Confidence may have shifted up or down — concessions note where evidence was weak.`,
+      lookFor: `Round2LivePanel — locate ${label}. Compare original vs revised hypothesis text, confidence bar delta, and any concession bullets.`,
+      whyItMatters:
+        'Round 2 is where opinions actually change. Agents that soften claims here were stress-tested; agents that hold firm earned it through defense.',
+      deepDive:
+        'Each revision is a structured LLM call with the full challenge bundle as context — not a single summary paragraph. Watch for confidence calibration: overconfident agents often drop sharply after cross-exam.',
+      outputs: 'RevisedHypothesis with confidence_before, confidence_after, revision_summary',
+      badge: 'Round 2',
+    };
+  }
+
+  if (id.startsWith('s3_strain_')) {
+    const strainKey = id.replace('s3_strain_', '').replace(/_/g, ' ');
+    return {
+      kind: 'review',
+      stage: 3,
+      substepId: 's3_strains',
+      title: `Review · ${strainKey} belief strain`,
+      pipelineState: `Stage 3 · Narrative strains · ${strainKey}`,
+      stateLabel: 'Complete — inspect the output panel',
+      doing: `A recurring hashtag/caption theme (“${strainKey}”) was clustered and fitted with SIR-style momentum parameters — spread β, decay γ, and reproduction number R₀.`,
+      lookFor: `StrainCards — ${strainKey} card shows R₀, trend label (expanding/stable/contracting), activation sparkline, and peak date.`,
+      whyItMatters:
+        'Strains inject narrative shocks into Monte Carlo — a politically expanding theme can pull valence/ideological dimensions even when mood OU dynamics would otherwise mean-revert.',
+      deepDive:
+        'SIR strains are independent of OU mood dimensions. They capture which story clusters are gaining or losing cultural momentum in this profile’s content.',
+      outputs: 'PersonalR0Estimate per strain → MC shock schedule',
+      badge: 'Stage 3',
+    };
+  }
+
+  return null;
 }
 
 /** @deprecated use introCalloutFromEvent */
