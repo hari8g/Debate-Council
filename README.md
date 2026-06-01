@@ -2,7 +2,7 @@
 
 **The first answer is not the verdict. It is the opening statement.**
 
-*North Star* is a transparent, three-stage **Persona Dynamics Engine** — part of the [Theatre of Reasoning]https://substack.com/@harig88/note/p-199960932?utm_source=notes-share-action&r=1f0bvq research line — that treats a single LLM output as a *hypothesis to be cross-examined*, not a conclusion to be trusted.
+*North Star* is a transparent, three-stage **Persona Dynamics Engine** — first part of the [Theatre of Reasoning](https://substack.com/@harig88/note/p-199960932?utm_source=notes-share-action&r=1f0bvq) research line — that treats a single LLM output as a *hypothesis to be cross-examined*, not a conclusion to be trusted.
 
 Given a public Instagram profile, North Star does not ask one model for the story and stop. It:
 
@@ -17,6 +17,17 @@ Built by Hariprasad Gowrisankar · **Repository:** [github.com/hari8g/Debate-Cou
 > For end-to-end event flow, mathematical formulations, and module maps, see **[ARCHITECTURE_FLOW.md](./ARCHITECTURE_FLOW.md)**.  
 > For the idealized mathematical specification (worked examples, full 6×6 OU theory), see **[persona_dynamics_engine_methadology.md](./persona_dynamics_engine_methadology.md)**.
 
+### Demo tours (no backend)
+
+Run `npm run dev` in `frontend/` only — no API keys or Python backend required.
+
+| Tour | Open this URL | What you get |
+|------|---------------|--------------|
+| **Detailed walkthrough** | [http://localhost:5173/?demo=1](http://localhost:5173/?demo=1) | Full pipeline on `@demo_creator` — compact **Up next** panel (bottom-right), stage curtains, ~45 guided steps |
+| **Debate council** | [http://localhost:5173/?demo=debate](http://localhost:5173/?demo=debate) | Stage 2 only — glass R1/R2/R3 panels, council rail, manual pauses per round |
+
+**How to use either tour:** click **Continue** or press **Space** on the walkthrough panel · click timeline substeps to inspect the right-hand detail panel · **No pauses** skips remaining callouts · **Exit demo** returns to live analysis.
+
 ---
 
 ## Table of Contents
@@ -27,14 +38,14 @@ Built by Hariprasad Gowrisankar · **Repository:** [github.com/hari8g/Debate-Cou
   - [3. Configure the backend](#3-configure-the-backend)
   - [4. Build and run](#4-build-and-run)
   - [5. See results](#5-see-results)
-    - [5A — Interactive demo (no backend)](#5a-interactive-demo-no-backend)
+    - [5A — Demo tours (no backend)](#5a-demo-tours-no-backend)
     - [5B — Live analysis (real profile)](#5b-live-analysis-real-instagram-profile)
 - [What North Star Does](#what-north-star-does)
 - [Key Features](#key-features)
 - [Architecture at a Glance](#architecture-at-a-glance)
 - [Repository Structure](#repository-structure)
-- [Interactive Demo](#interactive-demo)
-  - [Experience modes](#experience-modes)
+- [Demo portal](#demo-portal)
+  - [Tour modes](#tour-modes)
   - [Demo UI layers](#demo-ui-layers)
   - [Launch URLs](#launch-urls)
   - [Demo profile fixture](#demo-profile-fixture)
@@ -57,7 +68,7 @@ Built by Hariprasad Gowrisankar · **Repository:** [github.com/hari8g/Debate-Cou
 
 ## Getting Started
 
-Follow these steps in order. If you only want to explore the UI without API keys, skip to **[5A — Interactive demo](#5a-interactive-demo-no-backend)** after step 4 (frontend only).
+Follow these steps in order. If you only want to explore the UI without API keys, skip to **[5A — Demo tours](#5a-demo-tours-no-backend)** after step 4 (frontend only).
 
 ### 1. Clone or fork the repository
 
@@ -115,7 +126,7 @@ python3 --version   # expect 3.11+ (live analysis only)
 
 ### 3. Configure the backend
 
-> **Skip this section** if you are running the [interactive demo only](#5a-interactive-demo-no-backend).
+> **Skip this section** if you are running a [demo tour only](#5a-demo-tours-no-backend).
 
 #### Step 3.1 — Create the environment file
 
@@ -215,20 +226,35 @@ For production you must also deploy the FastAPI backend and point the frontend A
 
 There are two ways to see North Star in action. Both use the **same dashboard UI** (pipeline timeline on the left, detail panels on the right).
 
-#### 5A. Interactive demo (no backend)
+#### 5A. Demo tours (no backend)
 
-**Best for:** exploring the full pipeline UI with zero configuration — recommended starting point.
+**Best for:** exploring the production dashboard with zero configuration — no `LLM_API_KEY`, Instagram session, or backend.
+
+**Tour A — Detailed walkthrough (full pipeline, ~15–25 min)**
 
 | Step | Action | Expected result |
 |------|--------|-----------------|
-| 1 | Ensure **Terminal 2** (`npm run dev`) is running | Frontend at [http://localhost:5173](http://localhost:5173) |
-| 2 | Open [http://localhost:5173/?demo=1](http://localhost:5173/?demo=1) | Demo landing page for `@demo_creator` with four experience cards |
-| 3 | Select **Interactive demo** (recommended) and click **Start interactive demo** | Top narration bar appears; Stage 1 streams in the timeline |
-| 4 | Read callouts (intro auto-advances; review steps wait for you) | Rich panels explain what to watch and why; Round 2/3 and Stage 3 get extra dwell time |
-| 5 | Optionally try **Debate council** (`?demo=debate`) for Stage 2 only | Six-agent flow with council rail and manual round-by-round pauses |
-| 6 | At completion, click **Open Full Report** on the finale overlay | **Full Report** tab with the consolidated `PersonaDynamicsReport` |
+| 1 | Run `npm run dev` in `frontend/` | Dev server at [http://localhost:5173](http://localhost:5173) |
+| 2 | Open **[http://localhost:5173/?demo=1](http://localhost:5173/?demo=1)** | Landing with two tour cards for `@demo_creator` |
+| 3 | Select **Detailed walkthrough** → **Start detailed walkthrough** | Pipeline runs Stage 1 → 2 → 3 from fixture data |
+| 4 | Use the **walkthrough panel** (bottom-right): **Up next** / **Look** / **Then** | One glance per step; timeline highlights the active substep |
+| 5 | Press **Continue** or **Space** at each pause | Intro before substeps; review after key outputs (derived signals, debate rounds, Stage 3 math) |
+| 6 | On **Stage 1 → Derived signals**, note four **colour-highlighted** metrics | Posting regularity, engagement slope, topic drift, emotional volatility — Stage 3 drivers |
+| 7 | On **Stage 2 → Round 3**, watch live synthesis progress | Glass portal + feed; debate rail shows synthesis % during merge |
+| 8 | At **JOB_COMPLETE**, open **Full Report** on the finale overlay | Consolidated `PersonaDynamicsReport` |
 
-No `LLM_API_KEY`, Instagram session, or backend required. Full details: [Interactive Demo](#interactive-demo).
+**Tour B — Debate council only (Stage 2, ~8–12 min)**
+
+| Step | Action | Expected result |
+|------|--------|-----------------|
+| 1 | Open **[http://localhost:5173/?demo=debate](http://localhost:5173/?demo=debate)** | Starts immediately (Stage 1 pre-seeded; debate rail visible) |
+| 2 | Advance with **Continue** / **Space** at each round pause | Hypotheses → 30 challenges → six revisions → synthesis → unified persona |
+| 3 | Inspect **Round 1/2/3** glass panels in the detail pane | Portal + compact feed (not a long scroll list) |
+| 4 | Finish on **Unified persona** substep or finale | Persona tab with structured `PersonaModel` |
+
+Optional: from the live landing page ([http://localhost:5173](http://localhost:5173)), use the **Detailed walkthrough demo** / **Debate council demo** links under the URL form.
+
+Full reference: [Demo portal](#demo-portal).
 
 ---
 
@@ -264,8 +290,8 @@ No `LLM_API_KEY`, Instagram session, or backend required. Full details: [Interac
 | URL | Purpose |
 |-----|---------|
 | [http://localhost:5173](http://localhost:5173) | Landing page / live analysis |
-| [http://localhost:5173/?demo=1](http://localhost:5173/?demo=1) | Demo landing — pick experience mode |
-| [http://localhost:5173/?demo=debate](http://localhost:5173/?demo=debate) | Jump straight into Stage 2 debate council demo |
+| [http://localhost:5173/?demo=1](http://localhost:5173/?demo=1) | Demo landing → **Detailed walkthrough** (full pipeline) |
+| [http://localhost:5173/?demo=debate](http://localhost:5173/?demo=debate) | **Debate council** tour (Stage 2 only, auto-start) |
 | [http://localhost:8000/api/health](http://localhost:8000/api/health) | Backend health check |
 | [http://localhost:8000/docs](http://localhost:8000/docs) | FastAPI Swagger UI |
 
@@ -307,7 +333,7 @@ Every substep emits SSE events so inference unfolds in real time on the dashboar
 | **Projection** | Calendar-aware OU fit; adaptive SIR belief strains; coupled Monte Carlo; fan charts and scenario clusters |
 | **Narrative** | Horizon narratives (30d / 90d / 6mo / long) + strategic future-goals agent |
 | **Live UI** | Pipeline timeline, substep detail panels, interactive math explainers, consolidated report + HTML export |
-| **Interactive demo** | Four experience modes at `?demo=1` — full production UI replayed from fixture; narration bar, rich callouts, debate council rail, stage-weighted pacing (~7 min default mode) |
+| **Demo portal** | Two guided tours at `?demo=1` and `?demo=debate` — same production UI replayed from fixture; compact walkthrough panel, glass debate rounds, Stage 3 driver highlights |
 | **Stage rerun** | Re-execute Stage 1, 2, or 3 independently without restarting the full job |
 | **Resilience** | LLM retries, Instagram session bypass for revoked GraphQL, error console with full tracebacks |
 
@@ -373,18 +399,20 @@ persona/
 │
 └── frontend/
     ├── src/
-    │   ├── demo/                      ← Interactive demo — see [Interactive Demo](#interactive-demo)
-    │   │   ├── NorthStarDemo.tsx      ← Landing + experience picker + shell
-    │   │   ├── DemoTopChrome.tsx      ← In-flow narration + debate rail (no overlap)
-    │   │   ├── DemoNarrationBar.tsx   ← “What’s happening” / “Why this step” bar
-    │   │   ├── DebateCouncilRail.tsx  ← Stage 2 round tracker + agent revision dots
-    │   │   ├── DemoCalloutOverlay.tsx ← Rich intro/review callout panels
-    │   │   ├── DemoStageCurtain.tsx   ← Light stage transition cards
-    │   │   ├── DemoFinale.tsx         ← Completion overlay → Full Report
-    │   │   ├── demoExperience.ts      ← Modes, pacing, spotlight checkpoints
-    │   │   ├── demoNarration.ts       ← Live narration copy per pipeline event
-    │   │   ├── demoCallouts.ts        ← Callout copy + guided moment ordering
-    │   │   ├── demoRunner.ts          ← Replay engine (pause, modes, highlights)
+    │   ├── demo/                      ← Demo portal — see [Demo portal](#demo-portal)
+    │   │   ├── NorthStarDemo.tsx      ← Landing (2 tours) + AnalysisShell shell
+    │   │   ├── DemoWalkthroughPanel.tsx ← Compact “Up next / Look / Then” panel
+    │   │   ├── DemoTopChrome.tsx      ← In-flow narration + debate rail
+    │   │   ├── DemoNarrationBar.tsx   ← Short context line between pauses
+    │   │   ├── DebateCouncilRail.tsx  ← Stage 2 phase tracker + synthesis %
+    │   │   ├── DemoCalloutOverlay.tsx ← Walkthrough panel host
+    │   │   ├── DemoStageCurtain.tsx   ← Stage transition cards (walkthrough)
+    │   │   ├── DemoFinale.tsx         ← Completion → Full Report
+    │   │   ├── demoExperience.ts      ← `guided` | `debate` modes + pacing
+    │   │   ├── demoWalkthrough.ts     ← Next-beat helpers + clipped copy
+    │   │   ├── demoNarration.ts       ← Event-driven narration copy
+    │   │   ├── demoCallouts.ts        ← Callout copy + `GUIDED_MOMENT_IDS`
+    │   │   ├── demoRunner.ts          ← Replay engine (pauses, highlights)
     │   │   ├── buildDemoFixture.ts    ← @demo_creator report fixture
     │   │   └── buildDemoEvents.ts     ← Ordered PipelineEvent script
     │   ├── App.tsx                    ← Routes ?demo=1 / ?demo=debate → NorthStarDemo
@@ -408,55 +436,55 @@ persona/
 
 ---
 
-## Interactive Demo
+## Demo portal
 
-The interactive demo replays the **full North Star dashboard** — the same `AnalysisShell`, pipeline timeline, substep detail panels, debate council, phase portraits, Monte Carlo charts, goals outlook, and consolidated report — **without** a running backend, LLM API key, or Instagram session.
+The demo portal replays the **full North Star dashboard** — the same `AnalysisShell`, pipeline timeline, substep detail panels, glass debate rounds (R1–R3), phase portraits, Monte Carlo charts, and consolidated report — **without** a running backend, LLM API key, or Instagram session.
 
-It uses the **same UI components** as live analysis. Events are replayed from a fixture via `analysisStore.handleEvent()`, not a simplified mock.
+Events are replayed from a fixture via `analysisStore.handleEvent()` (same reducer as live SSE), not a simplified mock.
 
-### Experience modes
+### Tour modes
 
-Choose a mode on the landing page at `?demo=1`:
+Two tours only — pick on the landing page at `?demo=1`, or use the direct links below.
 
-| Mode | Duration | Best for |
-|------|----------|----------|
-| **Interactive demo** *(recommended)* | ~7 min | Auto-paced tour with rich callouts, top narration bar, and extra dwell on **Stage 2 Rounds 2–3** and **all Stage 3 phases** |
-| **Debate council** | ~8–12 min | Stage 2 only — how agents form hypotheses, cross-examine, revise opinions, and synthesize a persona (`?demo=debate` skips landing) |
-| **Deep dive** | ~15–25 min | Intro + review pause at **every** canonical substep (45 guided moments) — you control every step |
-| **Free run** | ~3–8 min | No callouts; continuous replay at your chosen speed |
+| Tour | URL | Duration | Best for |
+|------|-----|----------|----------|
+| **Detailed walkthrough** | [http://localhost:5173/?demo=1](http://localhost:5173/?demo=1) | ~15–25 min | Full pipeline with **guided pauses** at every canonical substep (~45 moments in `GUIDED_MOMENT_IDS`) |
+| **Debate council** | [http://localhost:5173/?demo=debate](http://localhost:5173/?demo=debate) | ~8–12 min | Stage 2 only — hypotheses, 30 challenges, revisions, live synthesis, persona (`?demo=debate` auto-starts) |
 
-**Interactive demo** (default) highlights:
+**Detailed walkthrough** highlights:
 
-- **Stage-weighted pacing** — Stage 1 moves briskly; Stage 2 challenges/revisions and Stage 3 math/MC run slower so you can follow agent interaction and Monte Carlo integration.
-- **Intro spotlights** — Auto-advancing callouts (with countdown) before hero substeps: signal matrix, debate rounds, OU fit, strains, Monte Carlo, narratives, etc.
-- **Review pauses** — Manual **“I've reviewed this — continue”** after Round 1 completes, **each Round 2 agent revision**, Round 3 synthesis, persona model, and **every Stage 3 substep** (including per-strain cards).
-- **Full callout panels** — Inputs, outputs, “look for in the UI”, and expandable deep dives (auto-expanded on review steps).
+- **Compact walkthrough panel** (bottom-right) — **Up next** (one line), **Look** (UI hint), **Then** (next beat preview); no long inputs/outputs/deep-dive walls of text.
+- **Stage curtains** — light frosted card when each stage begins (pipeline stays visible).
+- **Stage 3 driver metrics** — on **Derived signals**, four colour-highlighted cards (regularity, engagement slope, topic drift, emotional volatility).
+- **Glass debate UI** — Round 1 cross-exam portal + feed; Round 2 defense portal; Round 3 synthesis with live progress and confidence slope chart.
+- **Timeline spotlighting** — amber = up next, green = review; detail panel auto-selects the active substep.
 
-**Debate council** mode pre-seeds Stage 1 instantly, then runs only Stage 2 with the council rail and manual round-by-round pauses.
+**Debate council** pre-seeds Stage 1 instantly, runs only Stage 2, shows the **council rail** (R0→Persona phases, challenge/revision counters, synthesis %), and pauses manually at each round.
 
 ### Demo UI layers
 
-All demo chrome sits **in-flow below the header** (not fixed over the pipeline), so the timeline and detail panels stay readable.
+Demo chrome is designed to stay out of the way of the pipeline.
 
 | Layer | Role |
 |-------|------|
-| **`DemoTopChrome`** | Stacks narration bar + debate rail without overlapping |
-| **`DemoNarrationBar`** | Live **What’s happening** / **Why this step** copy; stage progress + timer in interactive mode; minimizable |
-| **`DebateCouncilRail`** | Stage 2 only — R0→Persona phase tracker, challenge/revision counters, agent dots (amber = opinion revised); hides after Stage 2 |
-| **`DemoCalloutOverlay`** | Bottom intro/review dialog with full explanatory content |
-| **`DemoStageCurtain`** | Light frosted card when each stage begins (pipeline remains visible behind) |
-| **`DemoFinale`** | Completion overlay → **Open Full Report** |
+| **`DemoWalkthroughPanel`** | Bottom-right **Up next / Look / Then**; **Continue** · **Space**; optional **No pauses** |
+| **`DemoTopChrome`** | In-flow stack: short narration line + debate rail (Stage 2) |
+| **`DemoNarrationBar`** | Single clipped context line between walkthrough pauses (hidden while panel is open) |
+| **`DebateCouncilRail`** | Stage 2 — phase tracker, counters, synthesis progress message |
+| **`DemoCalloutOverlay`** | Hosts the walkthrough panel + backdrop dim |
+| **`DemoStageCurtain`** | Stage transition overlay (walkthrough tour) |
+| **`DemoFinale`** | Completion → **Open Full Report** |
 
-While a callout is open, the timeline spotlights the target substep (amber = up next, green = review), the detail panel gets a focus ring, and the relevant substep is auto-selected.
+While a walkthrough pause is open, the timeline spotlights the target substep, the detail panel gets a focus ring, and the relevant substep is auto-selected.
 
 ### Launch URLs
 
 | Entry point | URL / action |
 |-------------|--------------|
-| Demo landing (pick mode) | [http://localhost:5173/?demo=1](http://localhost:5173/?demo=1) |
-| Debate council only | [http://localhost:5173/?demo=debate](http://localhost:5173/?demo=debate) |
-| From live app | Link on `UrlForm` landing page |
-| Query params | `?demo=1` or `?demo=debate` (handled in `App.tsx`) |
+| Detailed walkthrough | [http://localhost:5173/?demo=1](http://localhost:5173/?demo=1) |
+| Debate council (auto-start) | [http://localhost:5173/?demo=debate](http://localhost:5173/?demo=debate) |
+| From live analysis landing | Two links on `UrlForm` (walkthrough + debate) |
+| Query params | `?demo=1` or `?demo=debate` (`App.tsx` → `NorthStarDemo`) |
 
 Requires only `npm run dev` in `frontend/`. The backend can be stopped.
 
@@ -480,34 +508,34 @@ Fixture data is in `frontend/src/demo/buildDemoFixture.ts` and matches the produ
 buildDemoFixture()     →  full report + intermediate payloads
 buildDemoEvents()      →  ordered PipelineEvent[] (~136 events)
 demoRunner.ts          →  timing, pause/resume, mode-specific checkpoints
-demoNarration.ts       →  live top-bar copy synced to each event
+demoNarration.ts       →  short context copy synced to each event
 analysisStore          →  same reducer as live SSE
 AnalysisShell          →  same timeline + detail panel as production
 ```
 
 Individual agent hypotheses, challenges (`s2_ch_*`), defenses, MC progress ticks, and strain cards stream between pauses exactly as in a live run.
 
-**Deep dive mode** adds 45 guided moments (stage intro, substep intro, substep review, stage wrap-up, job complete) — see `GUIDED_MOMENT_IDS` in `demoCallouts.ts`.
+The walkthrough tour follows **`GUIDED_MOMENT_IDS`** in `demoCallouts.ts` (stage intro → substep intro → substep review → stage wrap-up → job complete).
 
 ### Controls & troubleshooting
 
 | Control | Description |
 |---------|-------------|
-| **Start interactive demo** | Default recommended path from landing |
-| **Continue now / I've reviewed this** | Advance intro (auto or manual) or review callout · **Enter** / **Space** |
-| **Run without pauses** | Switches to free-run for the rest of the session |
+| **Start detailed walkthrough** | From `?demo=1` landing |
+| **Continue / Run step** | Advance the current pause · **Enter** / **Space** |
+| **No pauses** | Skips remaining walkthrough callouts for this session |
 | **Pause / Resume** | Pauses event replay; resume continues from the same event index |
-| **Minimize** (narration bar) | Collapse top chrome to give more room to the pipeline |
 | **Exit demo** | Clears store and removes `?demo` from the URL |
 | **Stage Rerun (↺)** | Replays that stage’s fixture events via `rerunDemoStage()` |
 
-Header badge shows active mode (e.g. **Interactive demo · ~7 min**, **Debate council**, **Deep dive**).
+Header badge shows **Walkthrough** or **Debate council**.
 
 | Issue | Fix |
 |-------|-----|
-| Callout stuck | Click **Continue** / **Resume**, or reload `?demo=1` |
-| Timeline not highlighting | Ensure you’re not in **Free run**; interactive/deep dive modes spotlight during callouts |
-| Panels felt overlapping (older builds) | Update to latest — chrome is in-flow via `DemoTopChrome` |
+| Walkthrough panel stuck | Click **Continue** or press **Space**; or **No pauses** |
+| Blank page after pull | Run `npm run build` in `frontend/` — demo must compile (`guided` \| `debate` only) |
+| Timeline not highlighting | Spotlight appears only while a walkthrough pause is open |
+| Round 3 appears frozen | Synthesis streams progress in fixture + live backend; check walkthrough panel message and debate rail % |
 
 ### Demo vs live analysis
 
@@ -524,11 +552,13 @@ Header badge shows active mode (e.g. **Interactive demo · ~7 min**, **Debate co
 
 | File | Role |
 |------|------|
-| `frontend/src/demo/NorthStarDemo.tsx` | Landing, experience picker, wraps `AnalysisShell` + overlays |
-| `frontend/src/demo/DemoTopChrome.tsx` | In-flow stack for narration + debate rail |
-| `frontend/src/demo/DemoNarrationBar.tsx` | Top narration + interactive progress HUD |
-| `frontend/src/demo/DebateCouncilRail.tsx` | Stage 2 council phase tracker |
-| `frontend/src/demo/DemoCalloutOverlay.tsx` | Intro/review callout dialog |
+| `frontend/src/demo/NorthStarDemo.tsx` | Landing (2 tours) + `AnalysisShell` shell |
+| `frontend/src/demo/DemoWalkthroughPanel.tsx` | Compact Up next / Look / Then panel |
+| `frontend/src/demo/DemoTopChrome.tsx` | In-flow narration + debate rail |
+| `frontend/src/demo/DemoNarrationBar.tsx` | Short context between pauses |
+| `frontend/src/demo/DebateCouncilRail.tsx` | Stage 2 phase tracker + synthesis % |
+| `frontend/src/demo/DemoCalloutOverlay.tsx` | Walkthrough panel host |
+| `frontend/src/demo/demoWalkthrough.ts` | Next-beat preview + clipped copy |
 | `frontend/src/demo/DemoStageCurtain.tsx` | Stage transition overlay |
 | `frontend/src/demo/DemoFinale.tsx` | Analysis-complete overlay |
 | `frontend/src/demo/demoExperience.ts` | Mode config, pacing gaps, spotlight checkpoints |
@@ -708,10 +738,10 @@ Base URL: `http://localhost:8000`
 
 ### Layout
 
-- **Landing** — URL form with segmented post-collection control (All / 90d / 360d / 730d) and link to the [interactive demo](#interactive-demo).
+- **Landing** — URL form with post-collection control (All / 90d / 360d / 730d) and links to [demo tours](#demo-portal).
 - **Analysis view** — Split panel: **Pipeline timeline** (left) + **Detail panel** (right).
 - **Detail tabs** — Live (substep views), Full Report (when complete), Error Console.
-- **Demo view** (`?demo=1` / `?demo=debate`) — Same analysis layout with in-flow narration bar, optional debate council rail, callout overlays, and timeline spotlighting (see [Interactive Demo](#interactive-demo)).
+- **Demo view** (`?demo=1` / `?demo=debate`) — Same layout with walkthrough panel, narration strip, debate rail (Stage 2), and timeline spotlighting (see [Demo portal](#demo-portal)).
 
 ### Notable UI components
 
@@ -720,7 +750,9 @@ Base URL: `http://localhost:8000`
 | `SignalMatrixFlow` | Interactive 3-step matrix builder explainer |
 | `EngagementDepthPanel` | Phased enrichment walkthrough |
 | `AgentCouncilIntroPanel` | Six-agent council rationale |
-| `Round1LivePanel` | Live challenge matrix (30 cross-examinations) |
+| `Round1LivePanel` | Glass cross-exam portal + compact feed (30 challenges) |
+| `Round2LivePanel` / `Round3LivePanel` | Glass defense / synthesis portals + Recharts confidence chart |
+| `DerivedMetrics` | Seven deterministic metrics; four highlighted as Stage 3 drivers |
 | `MathExplainer` | Expandable step-by-step math for each Stage 3 substep |
 | `MonteCarloCharts` | Fan chart, audit panel, entropy source list, scenarios |
 | `FutureNarrative` | Horizon narratives + strategic goals agent output |
@@ -826,9 +858,9 @@ Vite dev server proxies `/api` to `localhost:8000` (see `frontend/vite.config.ts
 | Monte Carlo slow (~60–90s) | 10k paths × 365 days is CPU-intensive | Expected; progress streams in UI |
 | Stage rerun returns 409 | Another stage already running | Wait for current run to finish |
 | ⓘ popover clipped | Old build | Ensure latest `InfoPopover` (portal + viewport clamp) |
-| Demo callout stuck / won't advance | Paused replay or aborted mid-step | Click **Continue** / **Resume**; reload `?demo=1` to restart |
-| Demo panels overlapping pipeline | Outdated build | Pull latest — demo chrome uses in-flow `DemoTopChrome` below the header |
-| Demo timeline not highlighting | Free run mode or between callouts | Use **Interactive demo** or **Deep dive**; spotlight appears during callouts |
+| Demo walkthrough stuck | Paused replay | **Continue** / **Space**, or **No pauses**; reload `?demo=1` |
+| Demo blank / white screen | TypeScript build broken | `cd frontend && npm run build` — must pass before `npm run dev` |
+| Demo timeline not highlighting | Between pauses | Normal — spotlight only during an open walkthrough step |
 
 ---
 
@@ -839,7 +871,7 @@ Vite dev server proxies `/api` to `localhost:8000` (see `frontend/vite.config.ts
 | [ARCHITECTURE_FLOW.md](./ARCHITECTURE_FLOW.md) | End-to-end event flow, SSE architecture, per-stage math, module map, rerun flow |
 | [persona_dynamics_engine_methadology.md](./persona_dynamics_engine_methadology.md) | Full mathematical specification with worked examples |
 | [backend/.env.example](./backend/.env.example) | All configurable environment variables |
-| [frontend/src/demo/](./frontend/src/demo/) | Interactive demo implementation (`?demo=1`) |
+| [frontend/src/demo/](./frontend/src/demo/) | Demo portal (`?demo=1` walkthrough, `?demo=debate`) |
 
 ---
 
