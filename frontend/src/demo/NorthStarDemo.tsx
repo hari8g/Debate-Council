@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Brain, Compass, MousePointerClick, Pause, Play, Rocket, Sparkles, Zap } from 'lucide-react';
+import { Brain, Compass, Pause, Play, Rocket, Sparkles } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { AnalysisShell } from '../components/AnalysisShell';
 import { useAnalysisStore } from '../store/analysisStore';
@@ -8,7 +8,7 @@ import { DemoFinale } from './DemoFinale';
 import { DemoStageCurtain } from './DemoStageCurtain';
 import { DemoTopChrome } from './DemoTopChrome';
 import { DEMO_PROFILE_URL, DEMO_USERNAME } from './buildDemoFixture';
-import { EXPERIENCE_LABELS, type DemoExperience } from './demoExperience';
+import { DEMO_TOUR_LINKS, EXPERIENCE_LABELS, type DemoExperience } from './demoExperience';
 import {
   exitDemoMode,
   getDemoCalloutState,
@@ -23,22 +23,30 @@ import {
   subscribeDemoCallout,
 } from './demoRunner';
 
-const EXPERIENCE_OPTIONS: {
+const TOUR_OPTIONS: {
   id: DemoExperience;
-  icon: typeof MousePointerClick;
+  icon: typeof Compass;
   accent: string;
-  featured?: boolean;
+  href: string;
 }[] = [
-  { id: 'interactive', icon: MousePointerClick, accent: 'from-[#0071e3] to-[#5856d6]', featured: true },
-  { id: 'debate', icon: Brain, accent: 'from-[#5856d6] to-[#af52de]', featured: true },
-  { id: 'guided', icon: Compass, accent: 'from-[#5856d6] to-[#af52de]' },
-  { id: 'freerun', icon: Zap, accent: 'from-[#34c759] to-[#30b0c7]' },
+  {
+    id: 'guided',
+    icon: Compass,
+    accent: 'from-[#0071e3] to-[#5856d6]',
+    href: DEMO_TOUR_LINKS.walkthrough.path,
+  },
+  {
+    id: 'debate',
+    icon: Brain,
+    accent: 'from-[#5856d6] to-[#af52de]',
+    href: DEMO_TOUR_LINKS.debate.path,
+  },
 ];
 
 function initialExperience(): DemoExperience {
   const demo = new URLSearchParams(window.location.search).get('demo');
   if (demo === 'debate') return 'debate';
-  return 'interactive';
+  return 'guided';
 }
 
 export function NorthStarDemo() {
@@ -73,17 +81,15 @@ export function NorthStarDemo() {
       return;
     }
 
-    if (mode === 'interactive') setDemoSpeed(0.88);
-    else if (mode === 'freerun') setDemoSpeed(1.5);
-    else setDemoSpeed(0.15);
-    await startDemoWalkthrough({ experience: mode });
+    setDemoSpeed(1);
+    await startDemoWalkthrough({ experience: 'guided' });
   };
 
   const togglePause = () => {
     if (paused) {
       setPaused(false);
       if (experience === 'debate') void startDebateCouncilDemo({ resume: true });
-      else void startDemoWalkthrough({ resume: true, experience });
+      else void startDemoWalkthrough({ resume: true, experience: 'guided' });
     } else {
       pauseDemoReplay();
       setPaused(true);
@@ -97,22 +103,21 @@ export function NorthStarDemo() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative z-10 mx-auto max-w-4xl text-center"
+          className="relative z-10 mx-auto max-w-3xl text-center"
         >
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/60 px-4 py-1.5 text-sm text-[var(--color-accent)] shadow-sm backdrop-blur-md">
             <Sparkles className="h-4 w-4" />
-            Live product demo · same UI as production analysis
+            Product demo · no backend required
           </div>
           <h1 className="hero-headline mb-4 text-4xl md:text-6xl">
             North Star on <span className="text-[var(--color-accent)]">@{DEMO_USERNAME}</span>
           </h1>
           <p className="mx-auto mb-10 max-w-2xl text-lg leading-relaxed text-[var(--color-text-muted)]">
-            An interactive walkthrough of the full Persona Dynamics pipeline — signal extraction, six-agent debate council,
-            Ornstein–Uhlenbeck dynamics, adaptive SIR strains, and 10,000-path Monte Carlo projection.
+            Choose a guided tour — full pipeline with step-by-step prompts, or debate council only (Stage 2).
           </p>
 
-          <div className="mb-8 grid gap-3 text-left sm:grid-cols-2">
-            {EXPERIENCE_OPTIONS.map(({ id, icon: Icon, accent, featured }) => {
+          <div className="mb-8 grid gap-4 text-left sm:grid-cols-2">
+            {TOUR_OPTIONS.map(({ id, icon: Icon, accent, href }) => {
               const meta = EXPERIENCE_LABELS[id];
               const selected = experience === id;
               return (
@@ -120,27 +125,23 @@ export function NorthStarDemo() {
                   key={id}
                   type="button"
                   onClick={() => setExperience(id)}
-                  className={`group relative overflow-hidden rounded-2xl border p-4 text-left transition ${
+                  className={`group relative overflow-hidden rounded-2xl border p-5 text-left transition ${
                     selected
                       ? 'border-[var(--color-accent)] bg-white shadow-[var(--shadow-card)] ring-2 ring-[var(--color-accent)]/20'
                       : 'border-[var(--color-border-subtle)] bg-white/70 hover:border-[var(--color-accent)]/40'
                   }`}
                 >
-                  <div className={`mb-3 inline-flex rounded-xl bg-gradient-to-br ${accent} p-2 text-white shadow-sm`}>
-                    <Icon className="h-4 w-4" />
+                  <div className={`mb-3 inline-flex rounded-xl bg-gradient-to-br ${accent} p-2.5 text-white shadow-sm`}>
+                    <Icon className="h-5 w-5" />
                   </div>
                   <div className="flex items-center justify-between gap-2">
-                    <p className="font-semibold text-[var(--color-text)]">{meta.title}</p>
+                    <p className="text-lg font-semibold text-[var(--color-text)]">{meta.title}</p>
                     <span className="shrink-0 rounded-full bg-[var(--color-bg-muted)] px-2 py-0.5 text-[10px] text-[var(--color-text-muted)]">
                       {meta.duration}
                     </span>
                   </div>
-                  <p className="mt-1 text-xs leading-relaxed text-[var(--color-text-muted)]">{meta.subtitle}</p>
-                  {featured && (
-                    <p className="mt-2 text-[10px] font-semibold uppercase tracking-wide text-[var(--color-accent)]">
-                      {id === 'debate' ? 'Stage 2 deep dive' : 'Recommended'}
-                    </p>
-                  )}
+                  <p className="mt-2 text-sm leading-relaxed text-[var(--color-text-muted)]">{meta.subtitle}</p>
+                  <p className="mt-3 font-mono text-[11px] text-[var(--color-accent)]">{href}</p>
                 </button>
               );
             })}
@@ -152,31 +153,23 @@ export function NorthStarDemo() {
             className="demo-cta inline-flex items-center gap-2 rounded-2xl px-10 py-4 text-[16px] font-semibold text-white shadow-lg transition hover:scale-[1.02] active:scale-[0.98]"
           >
             <Rocket className="h-5 w-5" />
-            {experience === 'interactive'
-              ? 'Start interactive demo'
-              : experience === 'debate'
-                ? 'Start debate council demo'
-                : experience === 'guided'
-                  ? 'Start walkthrough'
-                  : 'Start free run'}
+            {experience === 'debate' ? 'Start debate council tour' : 'Start detailed walkthrough'}
           </button>
 
           <p className="mt-6 text-sm text-[var(--color-text-muted)]">
-            Profile <span className="text-[var(--color-text)]">{DEMO_PROFILE_URL}</span> · 72 posts · 6 agents · 30 challenges · 10k MC paths
+            Direct links:{' '}
+            <a href={DEMO_TOUR_LINKS.walkthrough.path} className="text-[var(--color-accent)] hover:underline">
+              walkthrough
+            </a>
+            {' · '}
+            <a href={DEMO_TOUR_LINKS.debate.path} className="text-[var(--color-accent)] hover:underline">
+              debate
+            </a>
           </p>
 
-          <div className="mt-8 grid gap-2 text-left sm:grid-cols-3">
-            {[
-              ['Empirical', 'Signal matrix · Stage 3 driver metrics (4 highlighted) · engagement depth'],
-              ['Interpretive', 'Debate R1–R3 glass panels · live synthesis · unified persona'],
-              ['Dynamical', 'OU + SIR strains · ensemble Monte Carlo'],
-            ].map(([title, desc]) => (
-              <div key={title} className="rounded-xl border border-[var(--color-border-subtle)] bg-white/60 p-3 text-xs backdrop-blur-sm">
-                <p className="font-semibold text-[var(--color-text)]">{title}</p>
-                <p className="mt-1 text-[var(--color-text-muted)]">{desc}</p>
-              </div>
-            ))}
-          </div>
+          <p className="mt-4 text-xs text-[var(--color-text-muted)]">
+            {DEMO_PROFILE_URL} · 72 posts · 6 agents · 30 challenges
+          </p>
         </motion.div>
       </div>
     );

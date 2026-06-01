@@ -9,48 +9,20 @@ import {
   walkthroughStageProgress,
 } from './demoWalkthrough';
 
-function CountdownRing({ ms, total }: { ms: number; total: number }) {
-  const r = 12;
-  const c = 2 * Math.PI * r;
-  const pct = total > 0 ? ms / total : 0;
-  return (
-    <svg width="32" height="32" className="-rotate-90 shrink-0" aria-hidden>
-      <circle cx="16" cy="16" r={r} fill="none" stroke="var(--color-border-subtle)" strokeWidth="2" />
-      <circle
-        cx="16"
-        cy="16"
-        r={r}
-        fill="none"
-        stroke="var(--color-accent)"
-        strokeWidth="2"
-        strokeDasharray={c}
-        strokeDashoffset={c * (1 - pct)}
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
 export function DemoWalkthroughPanel({
   callout,
   experience,
   isReview,
-  autoAdvanceMs,
-  countdown,
   onContinue,
   onSkipPauses,
 }: {
   callout: DemoCallout;
   experience: DemoExperience;
   isReview: boolean;
-  autoAdvanceMs: number | null;
-  countdown: number;
   onContinue: () => void;
   onSkipPauses: () => void;
 }) {
   const isGuided = experience === 'guided';
-  const isInteractive = experience === 'interactive';
-  const showCountdown = isInteractive && autoAdvanceMs != null && !isReview;
   const next = getNextWalkthroughBeat(callout);
   const stageProgress = walkthroughStageProgress(callout);
   const primary = primaryWalkthroughLine(callout, isReview);
@@ -61,7 +33,7 @@ export function DemoWalkthroughPanel({
       : null;
 
   const nowLabel = isReview ? 'Just finished' : 'Up next';
-  const cta = isReview ? 'Continue' : showCountdown ? 'Continue' : 'Run step';
+  const cta = isReview ? 'Continue' : 'Run step';
 
   return (
     <motion.aside
@@ -99,14 +71,6 @@ export function DemoWalkthroughPanel({
             {callout.title}
           </h2>
         </div>
-        {showCountdown && (
-          <div className="relative">
-            <CountdownRing ms={countdown} total={autoAdvanceMs!} />
-            <span className="absolute inset-0 flex items-center justify-center text-[9px] font-mono text-[var(--color-text-muted)]">
-              {Math.ceil(countdown / 1000)}
-            </span>
-          </div>
-        )}
       </div>
 
       <div className="space-y-2.5">
@@ -142,7 +106,7 @@ export function DemoWalkthroughPanel({
       </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[var(--color-border-subtle)] pt-3">
-        {(isGuided || isInteractive) && (
+        {isGuided && (
           <button
             type="button"
             onClick={onSkipPauses}

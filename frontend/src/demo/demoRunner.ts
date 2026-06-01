@@ -33,7 +33,8 @@ let speedMultiplier = 1.2;
 let replayIndex = 0;
 let replayTotal = 0;
 let replayPaused = false;
-let demoExperience: DemoExperience = 'interactive';
+let demoExperience: DemoExperience = 'guided';
+let demoPausesEnabled = true;
 
 let advanceResolver: (() => void) | null = null;
 let calloutState: {
@@ -73,43 +74,10 @@ let debateRailState = {
   personaDone: false,
 };
 
-let interactiveStartedAt: number | null = null;
-let interactiveHud = {
-  active: false,
-  elapsedSec: 0,
-  beatLabel: 'Starting interactive demo…',
-  pipelineState: '',
-  stage: 1,
-  stageProgress: 0,
-  eventProgress: 0,
-};
-
 const calloutListeners = new Set<() => void>();
-let hudTimer: ReturnType<typeof setInterval> | null = null;
 
 function notifyCalloutListeners() {
   calloutListeners.forEach((fn) => fn());
-}
-
-function startHudTimer() {
-  stopHudTimer();
-  interactiveStartedAt = Date.now();
-  hudTimer = setInterval(() => {
-    if (interactiveStartedAt) {
-      interactiveHud = { ...interactiveHud, elapsedSec: (Date.now() - interactiveStartedAt) / 1000 };
-      notifyCalloutListeners();
-    }
-  }, 250);
-}
-
-function stopHudTimer() {
-  if (hudTimer) clearInterval(hudTimer);
-  hudTimer = null;
-}
-
-function updateInteractiveHud(partial: Partial<typeof interactiveHud>) {
-  interactiveHud = { ...interactiveHud, ...partial };
-  notifyCalloutListeners();
 }
 
 function setCalloutWaiting(callout: DemoCallout | null, waiting: boolean, autoAdvanceMs: number | null = null) {
@@ -118,13 +86,6 @@ function setCalloutWaiting(callout: DemoCallout | null, waiting: boolean, autoAd
   if (callout && waiting) {
     applyDemoFocus(callout, highlight);
     setNarration(narrationFromCallout(callout));
-    if (demoExperience === 'interactive' && callout.pipelineState) {
-      updateInteractiveHud({
-        beatLabel: callout.title,
-        pipelineState: callout.pipelineState,
-        stage: callout.stage ?? interactiveHud.stage,
-      });
-    }
   }
   notifyCalloutListeners();
 }
@@ -138,7 +99,6 @@ function setCurtain(stage: number | null) {
       title: STAGE_NAMES[stage] ?? `Stage ${stage}`,
       subtitle: '',
     };
-    updateInteractiveHud({ stage, stageProgress: 0, beatLabel: `Stage ${stage}`, pipelineState: STAGE_NAMES[stage] ?? '' });
   }
   notifyCalloutListeners();
 }
@@ -159,7 +119,7 @@ function syncNarrationFromEvent(event: PipelineEvent) {
 }
 
 function syncDebateRailFromEvent(event: PipelineEvent) {
-  if (demoExperience !== 'debate' && demoExperience !== 'interactive') return;
+  if (demoExperience !== 'debate' && demoExperience !== 'guided') return;
 
   const id = String(event.data.id ?? '');
 
@@ -274,11 +234,12 @@ export function getDemoFinaleState() {
   return finaleState;
 }
 
+/** @deprecated walkthrough no longer uses a top progress HUD */
 export function getDemoInteractiveHud() {
-  return interactiveHud;
+  return { active: false, elapsedSec: 0, beatLabel: '', pipelineState: '', stage: 1, stageProgress: 0, eventProgress: 0 };
 }
 
-/** @deprecated use getDemoInteractiveHud */
+/** @deprecated */
 export function getDemoCinemaHud() {
   return getDemoInteractiveHud();
 }
@@ -300,20 +261,31 @@ export function setDemoExperience(mode: DemoExperience) {
   notifyCalloutListeners();
 }
 
-export function isGuidedDemoEnabled() {
-  return demoExperience === 'guided';
+export function areDemoPausesEnabled() {
+  return demoPausesEnabled;
 }
 
-export function setGuidedDemoEnabled(enabled: boolean) {
-  if (enabled) demoExperience = 'guided';
-  else if (demoExperience === 'guided') demoExperience = 'freerun';
-  if (!enabled && advanceResolver) {
+export function setDemoPausesEnabled(enabled: boolean) {
+  demoPausesEnabled = enabled;
+  if (!enabled) {
     setCalloutWaiting(null, false);
-    const resolve = advanceResolver;
-    advanceResolver = null;
-    resolve();
+    if (advanceResolver) {
+      const resolve = advanceResolver;
+      advanceResolver = null;
+      resolve();
+    }
   }
   notifyCalloutListeners();
+}
+
+/** @deprecated use setDemoPausesEnabled */
+export function setGuidedDemoEnabled(enabled: boolean) {
+  setDemoPausesEnabled(enabled);
+}
+
+/** @deprecated use areDemoPausesEnabled */
+export function isGuidedDemoEnabled() {
+  return demoPausesEnabled;
 }
 
 export function isDemoReplayActive() {
@@ -336,8 +308,6 @@ export function stopDemoReplay() {
   replayController?.abort();
   replayController = null;
   replayPaused = false;
-  stopHudTimer();
-  interactiveHud = { ...interactiveHud, active: false };
   resetDebateRail(false);
   narrationState = { visible: false, narration: DEFAULT_NARRATION };
   if (advanceResolver) {
@@ -465,21 +435,25 @@ export function advanceDemoStep() {
 }
 
 function shouldIntroCallout(event: PipelineEvent): boolean {
-  if (demoExperience === 'freerun') return false;
+  if (!demoPausesEnabled) return false;
   if (demoExperience === 'debate') return isDebateIntroCheckpoint(event);
   if (demoExperience === 'guided') return isGuidedIntroCheckpoint(event);
-  if (demoExperience === 'interactive') return isInteractiveIntroCheckpoint(event);
   return false;
 }
 
 function shouldReviewCallout(event: PipelineEvent): boolean {
+  if (!demoPausesEnabled) return false;
   if (demoExperience === 'debate') return isDebateReviewCheckpoint(event);
-  if (demoExperience === 'interactive') return isInteractiveReviewCheckpoint(event);
-  return demoExperience === 'guided' && isGuidedReviewCheckpoint(event);
+  if (demoExperience !== 'guided') return false;
+  if (isGuidedReviewCheckpoint(event)) return true;
+  const id = String(event.data.id ?? '');
+  if (id.startsWith('s2_defense_')) return true;
+  if (id.startsWith('s3_strain_')) return true;
+  return false;
 }
 
 async function maybeWaitForIntro(event: PipelineEvent, signal: AbortSignal) {
-  if (demoExperience === 'interactive' && event.type === 'STAGE_START') {
+  if (demoExperience === 'guided' && event.type === 'STAGE_START') {
     await showStageCurtain(event.data.stage as number, signal);
     return;
   }
@@ -489,31 +463,25 @@ async function maybeWaitForIntro(event: PipelineEvent, signal: AbortSignal) {
     return;
   }
 
-  if (demoExperience === 'interactive' && isInteractiveFinaleEvent(event)) {
-    return;
-  }
-
   if (!shouldIntroCallout(event)) return;
 
   const callout = introCalloutFromEvent(event);
   if (!callout) return;
 
-  const autoMs =
-    demoExperience === 'interactive' ? interactiveCalloutDurationMs(callout) : demoExperience === 'debate' ? null : null;
-  setCalloutWaiting(callout, true, autoMs);
-  await waitForUserAdvance(signal, autoMs);
+  setCalloutWaiting(callout, true, null);
+  await waitForUserAdvance(signal, null);
 }
 
 async function maybeWaitForReview(event: PipelineEvent, signal: AbortSignal) {
   if (!shouldReviewCallout(event)) return;
   const callout =
-    demoExperience === 'interactive' ? interactiveReviewCalloutFromEvent(event) : reviewCalloutFromEvent(event);
+    walkthroughExtraReviewCalloutFromEvent(event) ?? reviewCalloutFromEvent(event);
   if (!callout) return;
   setCalloutWaiting(callout, true, null);
   await waitForUserAdvance(signal, null);
 }
 
-function gapBefore(event: PipelineEvent, prev: PipelineEvent | null): number {
+function gapBefore(event: PipelineEvent, _prev: PipelineEvent | null): number {
   const id = String(event.data.id ?? '');
 
   if (demoExperience === 'debate') {
@@ -526,46 +494,11 @@ function gapBefore(event: PipelineEvent, prev: PipelineEvent | null): number {
     return 120;
   }
 
-  if (demoExperience === 'interactive') {
-    return interactiveGapBeforeMs(event);
+  if (demoExperience === 'guided') {
+    return walkthroughGapBeforeMs(event) * 2.5;
   }
 
-  let ms = 150;
-  if (!prev) ms = 200;
-  else if (event.type === 'SUBSTEP_PROGRESS') ms = 80;
-  else if (event.type === 'SUBSTEP_COMPLETE' && id.startsWith('s2_ch_')) ms = 60;
-  else if (event.type === 'SUBSTEP_COMPLETE') ms = 180;
-  else if (event.type === 'SUBSTEP_START') ms = 120;
-  else if (event.type === 'STAGE_START') ms = 350;
-  else if (event.type === 'STAGE_COMPLETE') ms = 400;
-  else if (event.type === 'JOB_COMPLETE') ms = 500;
-
-  if (demoExperience === 'guided') ms *= 2.5;
-  return ms;
-}
-
-function syncHudFromEvent(event: PipelineEvent, index: number, total: number) {
-  if (demoExperience !== 'interactive') return;
-
-  const stage = (event.data.stage as number) ?? interactiveHud.stage;
-  let stageProgress = interactiveHud.stageProgress;
-
-  if (event.type === 'STAGE_START') stageProgress = 5;
-  if (event.type === 'STAGE_COMPLETE') stageProgress = 100;
-  if (event.type === 'SUBSTEP_COMPLETE' && event.data.stage) {
-    const s = event.data.stage as number;
-    const substeps: Record<number, number> = { 1: 8, 2: 5, 3: 6 };
-    const canonical = ['s1_', 's2_', 's3_'].some((p) => String(event.data.id).startsWith(p) && !String(event.data.id).includes('_ch_') && !String(event.data.id).includes('_agent_') && !String(event.data.id).includes('_defense_') && !String(event.data.id).includes('_strain_'));
-    if (canonical) {
-      stageProgress = Math.min(95, stageProgress + 100 / (substeps[s] ?? 6));
-    }
-  }
-
-  updateInteractiveHud({
-    stage: stage || interactiveHud.stage,
-    stageProgress,
-    eventProgress: total > 0 ? (index / total) * 100 : 0,
-  });
+  return 150;
 }
 
 async function replayEvents(events: PipelineEvent[], signal: AbortSignal, startIndex = 0) {
@@ -606,7 +539,6 @@ async function replayEvents(events: PipelineEvent[], signal: AbortSignal, startI
     handleEvent(event);
     prev = event;
     replayIndex = i + 1;
-    syncHudFromEvent(event, i + 1, events.length);
     syncNarrationFromEvent(event);
     syncDebateRailFromEvent(event);
 
@@ -623,7 +555,7 @@ async function replayEvents(events: PipelineEvent[], signal: AbortSignal, startI
       continue;
     }
 
-    if (demoExperience === 'interactive' && event.type === 'JOB_COMPLETE') {
+    if (demoExperience === 'guided' && event.type === 'JOB_COMPLETE') {
       try {
         await showFinale(signal);
       } catch (e) {
@@ -650,21 +582,11 @@ async function replayEvents(events: PipelineEvent[], signal: AbortSignal, startI
 
 export async function startDemoWalkthrough(options?: {
   resume?: boolean;
-  guided?: boolean;
   experience?: DemoExperience;
 }) {
-  if (options?.experience != null) demoExperience = options.experience;
-  else if (options?.guided === true) demoExperience = 'guided';
-  else if (options?.guided === false) demoExperience = 'freerun';
-
-  if (demoExperience === 'interactive') {
-    speedMultiplier = 0.88;
-    updateInteractiveHud({ active: true, elapsedSec: 0, eventProgress: 0, stageProgress: 0, stage: 1, beatLabel: 'Starting interactive demo…', pipelineState: '' });
-    startHudTimer();
-  } else {
-    stopHudTimer();
-    updateInteractiveHud({ active: false });
-  }
+  demoExperience = options?.experience ?? 'guided';
+  demoPausesEnabled = true;
+  speedMultiplier = 1;
 
   const events = buildDemoEvents(getDemoFixture());
   replayTotal = events.length;
@@ -675,10 +597,6 @@ export async function startDemoWalkthrough(options?: {
     stopDemoReplay();
     replayIndex = 0;
     replayPaused = false;
-    if (demoExperience === 'interactive') {
-      updateInteractiveHud({ active: true, elapsedSec: 0, eventProgress: 0, stageProgress: 0, stage: 1 });
-      startHudTimer();
-    }
     startAnalysisSession(DEMO_JOB_ID, true);
     useAnalysisStore.setState({ detailPanelTab: 'live' });
     setNarration(DEFAULT_NARRATION, true);
@@ -686,7 +604,6 @@ export async function startDemoWalkthrough(options?: {
     replayController?.abort();
     replayController = null;
     replayPaused = false;
-    if (demoExperience === 'interactive') startHudTimer();
   }
 
   const controller = new AbortController();
@@ -705,17 +622,14 @@ export async function startDemoWalkthrough(options?: {
     if (replayController === controller) replayController = null;
     if (replayIndex >= events.length) {
       setCalloutWaiting(null, false);
-      stopHudTimer();
-      updateInteractiveHud({ active: false });
     }
   }
 }
 
 export async function startDebateCouncilDemo(options?: { resume?: boolean }) {
   demoExperience = 'debate';
+  demoPausesEnabled = true;
   speedMultiplier = 0.85;
-  stopHudTimer();
-  updateInteractiveHud({ active: false });
 
   const events = buildDebateCouncilEvents(getDemoFixture());
   replayTotal = events.length;
@@ -790,7 +704,8 @@ export function exitDemoMode() {
   stopDemoReplay();
   replayIndex = 0;
   replayTotal = 0;
-  demoExperience = 'interactive';
+  demoExperience = 'guided';
+  demoPausesEnabled = true;
   useAnalysisStore.getState().reset();
   const url = new URL(window.location.href);
   url.searchParams.delete('demo');

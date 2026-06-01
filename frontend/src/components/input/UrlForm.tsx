@@ -121,13 +121,14 @@ export function UrlForm() {
         </div>
       </form>
 
-      <div className="mt-6 text-center">
-        <a
-          href="?demo=1"
-          className="text-sm text-[var(--color-accent)] underline-offset-2 hover:underline"
-        >
-          Watch the interactive demo — full pipeline, no API key required
+      <div className="mt-6 flex flex-col items-center gap-2 text-center text-sm">
+        <a href="?demo=1" className="text-[var(--color-accent)] underline-offset-2 hover:underline">
+          Detailed walkthrough demo
         </a>
+        <a href="?demo=debate" className="text-[var(--color-accent)] underline-offset-2 hover:underline">
+          Debate council demo (Stage 2)
+        </a>
+        <span className="text-xs text-[var(--color-text-muted)]">No API key or backend required</span>
       </div>
 
       <div className="mt-10 flex items-start gap-3 rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-bg-muted)]/60 p-4 text-left text-sm text-[var(--color-text-muted)]">
