@@ -2,7 +2,7 @@
 
 **The first answer is not the verdict. It is the opening statement.**
 
-*North Star* is a transparent, three-stage **Persona Dynamics Engine** — part of the [Theatre of Reasoning](https://github.com/hari8g/Debate-Council) research line — that treats a single LLM output as a *hypothesis to be cross-examined*, not a conclusion to be trusted.
+*North Star* is a transparent, three-stage **Persona Dynamics Engine** — part of the [Theatre of Reasoning]https://substack.com/@harig88/note/p-199960932?utm_source=notes-share-action&r=1f0bvq research line — that treats a single LLM output as a *hypothesis to be cross-examined*, not a conclusion to be trusted.
 
 Given a public Instagram profile, North Star does not ask one model for the story and stop. It:
 
