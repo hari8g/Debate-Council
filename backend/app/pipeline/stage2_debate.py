@@ -4,6 +4,7 @@ from typing import Any, Callable
 
 from app.llm.client import call_llm_async
 from app.pipeline.confidence_calibration import augment_agent_confidence
+from app.pipeline.defense_engine import DEFENSE_SYSTEM, build_defense_prompt, build_revised_analysis
 from app.pipeline.llm_parsing import (
     format_evidence,
     normalize_agent_analysis,
@@ -220,24 +221,17 @@ Return JSON with challenge_summary, contradiction, weakest_link, refutation_data
             f"Defense {i + 1}/{len(hypotheses)}: {hyp.agent} ({len(agent_challenges)} challenges)",
             percent=(i / len(hypotheses)) * 100,
         ))
-        prompt = f"""You are the {hyp.agent}. Original: {hyp.analysis.get('key_hypothesis', '')}
-Original confidence: {hyp.analysis.get('confidence', 0.5)}
-Challenges received ({len(agent_challenges)}):
-{chr(10).join(str(c.challenge_text) for c in agent_challenges)}
-
-Revise or defend. Return JSON with revised_hypothesis, key_claim, confidence (0.0-1.0, MUST change if challenges were valid), valid_challenges, evidence."""
-        result = await call_llm_async(f"You are the {hyp.agent}.", prompt)
+        prompt = build_defense_prompt(hyp, agent_challenges)
+        result = await call_llm_async(DEFENSE_SYSTEM, prompt)
         if isinstance(result, dict):
-            if "evidence" in result:
-                result["evidence"] = format_evidence(result["evidence"])
-            result = augment_agent_confidence(
-                hyp.agent, result, matrix, derived, challenges_received=len(agent_challenges),
-            )
+            revised_analysis = build_revised_analysis(result, hyp, agent_challenges, matrix, derived)
+        else:
+            revised_analysis = build_revised_analysis({}, hyp, agent_challenges, matrix, derived)
         rev = RevisedHypothesis(
             agent=hyp.agent,
             original=hyp,
             challenges_received=agent_challenges,
-            revised_analysis=result if isinstance(result, dict) else {},
+            revised_analysis=revised_analysis,
         )
         revised.append(rev)
         emit(substep_complete(job_id, time.time(), 2, f"s2_defense_{hyp.agent}", rev.model_dump(mode="json")))

@@ -204,7 +204,39 @@ def _mock_llm_response(system: str, prompt: str) -> dict[str, Any]:
             },
         }
 
-    if "challenge" in prompt.lower()[:200]:
+    if "cross-examination" in system.lower() or "challenge_evaluations" in prompt.lower():
+        challengers = re.findall(r"challenger_id:\s*(\w+)", prompt)
+        evaluations = []
+        verdicts = ["reject", "partial", "accept", "reject", "partial"]
+        for i, cid in enumerate(challengers):
+            verdict = verdicts[i % len(verdicts)]
+            delta = 0.0
+            if verdict == "accept":
+                delta = -0.08
+            elif verdict == "partial":
+                delta = -0.04
+            evaluations.append(
+                {
+                    "challenger": cid,
+                    "verdict": verdict,
+                    "rationale": (
+                        f"The {cid} challenge {'misreads the evidence base' if verdict == 'reject' else 'identifies a nuance worth integrating' if verdict == 'partial' else 'correctly flags a gap in the original framing'} "
+                        f"when applied to the specific posting rhythm and caption structure visible in the signal matrix."
+                    ),
+                    "response": f"Addressing {cid}: the objection is {'rebutted on timing grounds' if verdict == 'reject' else 'partially incorporated' if verdict == 'partial' else 'accepted with revised framing'}.",
+                    "confidence_delta": delta,
+                }
+            )
+        return {
+            "revised_hypothesis": "Politically engaged commentator with event-gated reactivity — revised after per-challenge review.",
+            "key_claim": "Moderate reactivity externally triggered; core identity claim survives with nuance.",
+            "evidence": "Burst alignment with political events; sustained posting during low-engagement windows.",
+            "challenge_evaluations": evaluations,
+        }
+
+    if "challenge with:" in prompt.lower() or (
+        "challenge" in prompt.lower()[:200] and "challenger_id" not in prompt.lower()
+    ):
         return {
             "contradiction": "Alternative explanation via external events",
             "weakest_link": "Assumes internal anxiety without ruling out external triggers",

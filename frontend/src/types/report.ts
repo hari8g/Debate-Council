@@ -169,6 +169,16 @@ export interface Challenge {
   challenge_text: string | Record<string, unknown>;
 }
 
+export interface ChallengeEvaluation {
+  challenger: string;
+  target?: string;
+  verdict: 'accept' | 'partial' | 'reject';
+  rationale: string;
+  response?: string;
+  confidence_delta: number;
+  challenge_summary?: string;
+}
+
 export interface RevisedHypothesis {
   agent: string;
   original: AgentHypothesis;

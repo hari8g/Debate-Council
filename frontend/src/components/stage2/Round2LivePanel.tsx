@@ -1,11 +1,38 @@
 import { useMemo, useState } from 'react';
-import type { AgentHypothesis, Challenge, RevisedHypothesis, SubstepState } from '../../types/report';
+import type { AgentHypothesis, Challenge, ChallengeEvaluation, RevisedHypothesis, SubstepState } from '../../types/report';
 import { AGENT_LABELS } from '../../types/report';
 import { buildConfidenceEvolution, revisedToHypotheses } from '../../lib/debateUtils';
 import { formatConfidence, parseConfidence } from '../../lib/utils';
 import { DebateConfidenceSpider } from './DebateConfidenceSpider';
 import { DebateEvolutionViz } from './DebateEvolutionViz';
 import { AgentCompareGrid } from './AgentCompareGrid';
+
+function challengeText(ch: Challenge): string {
+  return typeof ch.challenge_text === 'string'
+    ? ch.challenge_text
+    : JSON.stringify(ch.challenge_text, null, 2);
+}
+
+function verdictStyle(verdict: ChallengeEvaluation['verdict']): string {
+  if (verdict === 'accept') return 'text-[var(--color-danger)]';
+  if (verdict === 'partial') return 'text-[var(--color-warning)]';
+  return 'text-[var(--color-success)]';
+}
+
+function getChallengeEvaluation(
+  rev: RevisedHypothesis | undefined,
+  ch: Challenge,
+): ChallengeEvaluation | undefined {
+  const evaluations = rev?.revised_analysis?.challenge_evaluations;
+  if (!Array.isArray(evaluations)) return undefined;
+  return evaluations.find(
+    (e): e is ChallengeEvaluation =>
+      typeof e === 'object' &&
+      e !== null &&
+      'challenger' in e &&
+      (e as ChallengeEvaluation).challenger === ch.challenger,
+  );
+}
 
 export function Round2LivePanel({
   hypotheses,
@@ -37,6 +64,13 @@ export function Round2LivePanel({
     ? revised.find((r) => r.agent === selectedAgent)?.challenges_received ?? []
     : revised.flatMap((r) => r.challenges_received || []);
 
+  const selectedRev = selectedChallenge
+    ? revised.find((r) => r.agent === selectedChallenge.target)
+    : undefined;
+  const selectedEval = selectedChallenge && selectedRev
+    ? getChallengeEvaluation(selectedRev, selectedChallenge)
+    : undefined;
+
   return (
     <div className="space-y-5">
       <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-bg)] p-5 shadow-[var(--shadow-soft)]">
@@ -47,7 +81,7 @@ export function Round2LivePanel({
             </p>
             <h2 className="mt-1 text-2xl">Round 2 — Defenses</h2>
             <p className="mt-1 max-w-xl text-sm text-[var(--color-text-muted)]">
-              Each agent revised their hypothesis after cross-examination. The spider overlay shows Round 1 vs Round 2 confidence shifts.
+              Each agent evaluates every challenge individually. Confidence moves only when a challenge is accepted or partially accepted with substantive rationale.
             </p>
           </div>
           <div className="text-right">
@@ -98,22 +132,35 @@ export function Round2LivePanel({
               <h4 className="text-sm font-medium">Challenges addressed</h4>
             </div>
             <div className="max-h-72 space-y-1 overflow-y-auto p-3">
-              {challengesForView.map((ch, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => setSelectedChallenge(ch)}
-                  className={`w-full rounded-lg border px-3 py-2 text-left text-sm transition ${
-                    selectedChallenge === ch
-                      ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/8'
-                      : 'border-[var(--color-border)] hover:bg-[var(--color-bg-muted)]'
-                  }`}
-                >
-                  <span className="text-[var(--color-danger)]">{AGENT_LABELS[ch.challenger] || ch.challenger}</span>
-                  <span className="text-[var(--color-text-muted)]"> → </span>
-                  {AGENT_LABELS[ch.target] || ch.target}
-                </button>
-              ))}
+              {challengesForView.map((ch, i) => {
+                const rev = revised.find((r) => r.agent === ch.target);
+                const ev = getChallengeEvaluation(rev, ch);
+                return (
+                  <button
+                    key={`${ch.challenger}-${ch.target}-${i}`}
+                    type="button"
+                    onClick={() => setSelectedChallenge(ch)}
+                    className={`w-full rounded-lg border px-3 py-2 text-left text-sm transition ${
+                      selectedChallenge === ch
+                        ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/8'
+                        : 'border-[var(--color-border)] hover:bg-[var(--color-bg-muted)]'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span>
+                        <span className="text-[var(--color-danger)]">{AGENT_LABELS[ch.challenger] || ch.challenger}</span>
+                        <span className="text-[var(--color-text-muted)]"> → </span>
+                        {AGENT_LABELS[ch.target] || ch.target}
+                      </span>
+                      {ev && (
+                        <span className={`text-[10px] uppercase tracking-wide ${verdictStyle(ev.verdict)}`}>
+                          {ev.verdict}
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
           <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-4">
@@ -122,28 +169,48 @@ export function Round2LivePanel({
                 <h5 className="mb-2 text-sm font-medium">
                   {AGENT_LABELS[selectedChallenge.challenger]} → {AGENT_LABELS[selectedChallenge.target]}
                 </h5>
-                <p className="mb-3 text-sm text-[var(--color-text-muted)]">
-                  {typeof selectedChallenge.challenge_text === 'string'
-                    ? selectedChallenge.challenge_text
-                    : JSON.stringify(selectedChallenge.challenge_text, null, 2)}
-                </p>
-                {(() => {
-                  const rev = revised.find((r) => r.agent === selectedChallenge.target);
-                  if (!rev) return null;
-                  const before = parseConfidence(rev.original?.analysis?.confidence, 0.5);
-                  const after = parseConfidence(rev.revised_analysis?.confidence, before);
-                  return (
-                    <div className="rounded-lg bg-[var(--color-bg-muted)] p-3 text-sm">
-                      <p className="text-xs text-[var(--color-accent)]">
-                        Defense: {formatConfidence(before)} → {formatConfidence(after)}
-                      </p>
-                      <p className="mt-1">{String(rev.revised_analysis?.revised_hypothesis || rev.revised_analysis?.key_claim || '')}</p>
+                <p className="mb-3 text-sm text-[var(--color-text-muted)]">{challengeText(selectedChallenge)}</p>
+                {selectedEval ? (
+                  <div className="space-y-3 rounded-lg bg-[var(--color-bg-muted)] p-3 text-sm">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className={`text-xs font-medium uppercase tracking-wide ${verdictStyle(selectedEval.verdict)}`}>
+                        {selectedEval.verdict}
+                      </span>
+                      {selectedEval.confidence_delta !== 0 && (
+                        <span className="text-xs text-[var(--color-accent)]">
+                          confidence Δ {selectedEval.confidence_delta > 0 ? '+' : ''}
+                          {Math.round(selectedEval.confidence_delta * 100)}%
+                        </span>
+                      )}
                     </div>
-                  );
-                })()}
+                    <p>{selectedEval.response || selectedEval.rationale}</p>
+                    {selectedEval.response && selectedEval.rationale !== selectedEval.response && (
+                      <p className="text-xs text-[var(--color-text-muted)]">{selectedEval.rationale}</p>
+                    )}
+                  </div>
+                ) : selectedRev ? (
+                  <div className="rounded-lg bg-[var(--color-bg-muted)] p-3 text-sm">
+                    <p className="text-xs text-[var(--color-text-muted)]">Overall revised hypothesis</p>
+                    <p className="mt-1">
+                      {String(selectedRev.revised_analysis?.revised_hypothesis || selectedRev.revised_analysis?.key_claim || '')}
+                    </p>
+                  </div>
+                ) : null}
+                {selectedRev && (
+                  <p className="mt-3 text-xs text-[var(--color-accent)]">
+                    Agent total: {formatConfidence(parseConfidence(selectedRev.original?.analysis?.confidence, 0.5))}
+                    {' → '}
+                    {formatConfidence(parseConfidence(selectedRev.revised_analysis?.confidence, 0.5))}
+                    {typeof selectedRev.revised_analysis?.confidence_rationale === 'string' && (
+                      <span className="block mt-1 text-[var(--color-text-muted)]">
+                        {selectedRev.revised_analysis.confidence_rationale}
+                      </span>
+                    )}
+                  </p>
+                )}
               </>
             ) : (
-              <p className="text-sm text-[var(--color-text-muted)]">Select a challenge to see the defense response.</p>
+              <p className="text-sm text-[var(--color-text-muted)]">Select a challenge to see the per-challenge defense.</p>
             )}
           </div>
         </div>

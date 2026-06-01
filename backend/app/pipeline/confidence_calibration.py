@@ -61,7 +61,7 @@ def augment_agent_confidence(
     else:
         blended = 0.52 * llm_conf + 0.48 * signal_conf
 
-    if challenges_received > 0:
+    if challenges_received > 0 and not analysis.get("challenge_evaluations"):
         penalty = min(0.12, challenges_received * 0.008)
         accepted = analysis.get("valid_challenges")
         if accepted:

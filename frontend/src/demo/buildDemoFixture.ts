@@ -1,6 +1,7 @@
 import type {
   AgentHypothesis,
   Challenge,
+  ChallengeEvaluation,
   DerivedSignals,
   FutureStateDistribution,
   FutureStateNarrative,
@@ -18,6 +19,7 @@ import type {
   RevisedHypothesis,
   SignalSummary,
 } from '../types/report';
+import { parseConfidence } from '../lib/utils';
 
 export const DEMO_USERNAME = 'demo_creator';
 export const DEMO_JOB_ID = 'demo-walkthrough';
@@ -464,18 +466,53 @@ function buildChallenges(): Challenge[] {
   return output;
 }
 
+function buildChallengeEvaluations(
+  agent: AgentId,
+  received: Challenge[],
+  originalConf: number,
+): { evaluations: ChallengeEvaluation[]; confidence: number } {
+  const verdictCycle: ChallengeEvaluation['verdict'][] = ['reject', 'partial', 'reject', 'accept', 'partial', 'reject'];
+  const rationaleByVerdict: Record<ChallengeEvaluation['verdict'], (ch: Challenge) => string> = {
+    reject: (ch) =>
+      `${ch.challenger}'s objection misapplies the ${agent} framework: the cited engagement drag is already modeled as event-gated, not trait-stable. Caption expansion during low-like windows contradicts a pure status-maximization read.`,
+    partial: (ch) =>
+      `${ch.challenger} surfaces a fair nuance on timing and audience segmentation, but the core ${agent} claim survives with tighter bounds. I narrow the hypothesis without abandoning the primary mechanism.`,
+    accept: (ch) =>
+      `${ch.challenger} correctly identifies a gap the original ${agent} read underweighted. The challenge aligns with cross-signal evidence and warrants a meaningful confidence adjustment.`,
+  };
+  const responseByVerdict: Record<ChallengeEvaluation['verdict'], (ch: Challenge) => string> = {
+    reject: (ch) => `Rebutting ${ch.challenger}: the challenge conflates correlation with mechanism.`,
+    partial: (ch) => `Qualifying against ${ch.challenger}: merit acknowledged, core claim retained.`,
+    accept: (ch) => `Conceding to ${ch.challenger}: revising the framing where evidence supports it.`,
+  };
+
+  let totalDelta = 0;
+  const evaluations: ChallengeEvaluation[] = received.map((ch, i) => {
+    const verdict = verdictCycle[i % verdictCycle.length];
+    const confidence_delta =
+      verdict === 'accept' ? -0.08 : verdict === 'partial' ? -0.04 : 0;
+    totalDelta += confidence_delta;
+    const challengeText =
+      typeof ch.challenge_text === 'string' ? ch.challenge_text : JSON.stringify(ch.challenge_text);
+    return {
+      challenger: ch.challenger,
+      target: ch.target,
+      verdict,
+      rationale: rationaleByVerdict[verdict](ch),
+      response: responseByVerdict[verdict](ch),
+      confidence_delta,
+      challenge_summary: challengeText.slice(0, 120),
+    };
+  });
+
+  const confidence = Math.max(0.18, Math.min(0.95, originalConf + Math.max(-0.28, totalDelta)));
+  return { evaluations, confidence };
+}
+
 function buildRevisedHypotheses(
   hypotheses: AgentHypothesis[],
   challenges: Challenge[],
 ): RevisedHypothesis[] {
-  const confidence: Record<AgentId, number> = {
-    psychographer: 0.69,
-    sociologist: 0.72,
-    narrative_analyst: 0.75,
-    behavioural_economist: 0.7,
-    temporal_analyst: 0.74,
-    cultural_analyst: 0.68,
-  };
   const revisedText: Record<AgentId, string> = {
     psychographer:
       'Reframed from trait-centric to context-amplified: emotional reactivity is event-gated, while chronic pressure appears in caption expansion and defensive precision.',
@@ -494,18 +531,27 @@ function buildRevisedHypotheses(
   return AGENTS.map((agent) => {
     const original = hypotheses.find((h) => h.agent === agent) as AgentHypothesis;
     const received = challenges.filter((c) => c.target === agent);
-    const validChallenges = received
-      .slice(0, 3)
-      .map((c) => `${c.challenger}->${c.target}`)
-      .join(', ');
+    const originalConf = parseConfidence(original?.analysis?.confidence, 0.5);
+    const { evaluations, confidence } = buildChallengeEvaluations(agent, received, originalConf);
+    const accepted = evaluations.filter((e) => e.verdict === 'accept').length;
+    const partial = evaluations.filter((e) => e.verdict === 'partial').length;
+    const rejected = evaluations.filter((e) => e.verdict === 'reject').length;
+
     return {
       agent,
       original,
       challenges_received: received,
       revised_analysis: {
-        confidence: confidence[agent],
+        confidence,
+        confidence_before: originalConf,
+        confidence_delta_total: confidence - originalConf,
+        confidence_rationale: `Baseline ${Math.round(originalConf * 100)}%; ${accepted} accepted, ${partial} partial, ${rejected} rejected`,
         revised_hypothesis: revisedText[agent],
-        valid_challenges: validChallenges,
+        key_claim: revisedText[agent].split(':')[0] ?? revisedText[agent],
+        challenge_evaluations: evaluations,
+        challenges_accepted: accepted,
+        challenges_partial: partial,
+        challenges_rejected: rejected,
       },
     };
   });

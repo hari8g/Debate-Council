@@ -20,7 +20,7 @@ import { PhasePortraitCanvas } from '../stage3/PhasePortraitCanvas';
 import { StrainCards } from '../stage3/StrainCards';
 import { MonteCarloCharts } from '../stage3/MonteCarloCharts';
 import { FutureNarrative } from '../stage3/FutureNarrative';
-import type { AgentHypothesis, Challenge, PersonalR0Estimate, RevisedHypothesis, SubstepState } from '../../types/report';
+import type { AgentHypothesis, Challenge, ChallengeEvaluation, PersonalR0Estimate, RevisedHypothesis, SubstepState } from '../../types/report';
 
 const CANONICAL_S3 = new Set(['s3_state', 's3_ou', 's3_portrait', 's3_strains', 's3_monte', 's3_narrative']);
 
@@ -537,6 +537,9 @@ function DefenseCard({ revised: r }: { revised: RevisedHypothesis }) {
   const before = parseConfidence(r.original?.analysis?.confidence, 0.5);
   const after = parseConfidence(r.revised_analysis?.confidence, before);
   const claim = String(r.revised_analysis?.revised_hypothesis || r.revised_analysis?.key_claim || '');
+  const evaluations = Array.isArray(r.revised_analysis?.challenge_evaluations)
+    ? (r.revised_analysis.challenge_evaluations as ChallengeEvaluation[])
+    : [];
   return (
     <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-card)] p-3">
       <div className="mb-1 flex items-center justify-between gap-2">
@@ -547,8 +550,13 @@ function DefenseCard({ revised: r }: { revised: RevisedHypothesis }) {
       </div>
       <p className="text-sm text-[var(--color-text-muted)]">{claim}</p>
       <p className="mt-1 text-[10px] text-[var(--color-text-muted)]">
-        Addressed {r.challenges_received?.length ?? 0} challenges
+        {evaluations.length > 0
+          ? `${evaluations.filter((e) => e.verdict === 'accept').length} accepted · ${evaluations.filter((e) => e.verdict === 'partial').length} partial · ${evaluations.filter((e) => e.verdict === 'reject').length} rejected`
+          : `Addressed ${r.challenges_received?.length ?? 0} challenges`}
       </p>
+      {typeof r.revised_analysis?.confidence_rationale === 'string' && (
+        <p className="mt-1 text-[10px] text-[var(--color-text-muted)]">{r.revised_analysis.confidence_rationale}</p>
+      )}
       {r.revised_analysis?.evidence != null && (
         <p className="mt-2 text-xs text-[var(--color-text-muted)]">{formatEvidence(r.revised_analysis.evidence)}</p>
       )}
