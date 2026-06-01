@@ -121,9 +121,9 @@ export function PipelineTimeline() {
   const demoBusy = isDemoMode && isDemoReplayActive();
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="mb-4 flex items-center justify-between border-b border-[var(--color-border)] pb-3">
-        <h2 className="side-heading">Pipeline</h2>
+    <div className="flex h-full min-w-0 flex-col">
+      <div className="mb-3 flex items-center justify-between gap-2 border-b border-[var(--color-border)] pb-2">
+        <h2 className="text-lg font-semibold tracking-tight">Pipeline</h2>
         {status === 'running' && (
           <span className="text-xs text-[var(--color-text-muted)]">
             {rerunningStage ? `Rerunning stage ${rerunningStage}…` : `${elapsed}s elapsed`}
@@ -131,7 +131,7 @@ export function PipelineTimeline() {
         )}
       </div>
 
-      <div className="flex-1 space-y-6 overflow-y-auto pr-2">
+      <div className="flex-1 space-y-4 overflow-y-auto pr-1">
         {Object.values(stages)
           .sort((a, b) => a.stage - b.stage)
           .map((stage) => {

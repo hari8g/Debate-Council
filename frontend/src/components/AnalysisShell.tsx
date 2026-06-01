@@ -73,13 +73,18 @@ export function AnalysisShell({
 
       {topSlot}
 
-      <main className="flex min-h-0 flex-1 flex-col lg:flex-row">
-        <aside className="w-full border-b border-[var(--color-border-subtle)] bg-[var(--color-bg-muted)]/40 p-4 lg:w-[35%] lg:border-b-0 lg:border-r lg:border-[var(--color-border-subtle)]">
+      <main className="grid min-h-0 flex-1 grid-cols-1 grid-rows-[auto_minmax(0,1fr)] lg:grid-cols-[minmax(240px,22rem)_minmax(0,1fr)] lg:grid-rows-1 xl:grid-cols-[minmax(260px,24rem)_minmax(0,1fr)]">
+        <aside
+          className={cn(
+            'max-h-[min(42vh,22rem)] overflow-y-auto border-b border-[var(--color-border-subtle)] bg-[var(--color-bg-muted)]/40 p-3 sm:p-4',
+            'lg:sticky lg:top-0 lg:max-h-[calc(100vh-4.5rem)] lg:border-b-0 lg:border-r lg:border-[var(--color-border-subtle)]',
+          )}
+        >
           <PipelineTimeline />
         </aside>
         <section
           className={cn(
-            'flex-1 bg-[var(--color-bg)] p-4 lg:p-6',
+            'min-w-0 overflow-x-hidden bg-[var(--color-bg)] p-3 sm:p-4 lg:p-6',
             isDemoMode && calloutWaiting && 'demo-detail-spotlight',
           )}
         >

@@ -1,14 +1,15 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { BookOpen, Lightbulb, Sparkles } from 'lucide-react';
+import { BookOpen } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { INTERACTIVE_TARGET_SECONDS, type DemoExperience } from './demoExperience';
 import {
+  getDemoCalloutState,
   getDemoExperience,
   getDemoInteractiveHud,
   getDemoNarrationState,
   subscribeDemoCallout,
 } from './demoRunner';
-import type { DemoNarration } from './demoNarration';
+import { walkthroughClip } from './demoWalkthrough';
 
 const STAGES = [
   { n: 1, label: 'Signals', color: 'var(--color-chart-1)' },
@@ -22,51 +23,29 @@ function formatTime(sec: number) {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
-function NarrationContent({ narration }: { narration: DemoNarration }) {
-  return (
-    <div className="grid gap-3 md:grid-cols-2">
-      <div className="flex gap-2.5">
-        <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[var(--color-accent)]/10">
-          <Sparkles className="h-3.5 w-3.5 text-[var(--color-accent)]" />
-        </div>
-        <div className="min-w-0">
-          <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">What&apos;s happening</p>
-          <p className="text-sm leading-relaxed text-[var(--color-text)]">{narration.happening}</p>
-        </div>
-      </div>
-      <div className="flex gap-2.5">
-        <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-amber-500/10">
-          <Lightbulb className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
-        </div>
-        <div className="min-w-0">
-          <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">Why this step</p>
-          <p className="text-sm leading-relaxed text-[var(--color-text-muted)]">{narration.why}</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export function DemoNarrationBar({ embedded = false }: { embedded?: boolean }) {
   const [narration, setNarration] = useState(getDemoNarrationState);
   const [experience, setExperience] = useState<DemoExperience>(getDemoExperience);
   const [hud, setHud] = useState(getDemoInteractiveHud);
-  const [collapsed, setCollapsed] = useState(false);
+  const [calloutWaiting, setCalloutWaiting] = useState(getDemoCalloutState().waiting);
 
   useEffect(() => {
     return subscribeDemoCallout(() => {
       setNarration(getDemoNarrationState());
       setExperience(getDemoExperience());
       setHud(getDemoInteractiveHud());
+      setCalloutWaiting(getDemoCalloutState().waiting);
     });
   }, []);
 
   const visible = narration.visible;
   const isInteractive = experience === 'interactive' && hud.active;
+  const isGuided = experience === 'guided';
   const targetSeconds = INTERACTIVE_TARGET_SECONDS;
   const isDebate = experience === 'debate';
 
   if (!visible) return null;
+  if ((isGuided || isInteractive) && calloutWaiting) return null;
 
   const timePct = isInteractive ? Math.min(100, (hud.elapsedSec / targetSeconds) * 100) : 0;
 
@@ -110,19 +89,14 @@ export function DemoNarrationBar({ embedded = false }: { embedded?: boolean }) {
                   Debate council
                 </span>
               )}
-              <button
-                type="button"
-                onClick={() => setCollapsed((v) => !v)}
-                className="rounded-lg px-2 py-1 text-[10px] text-[var(--color-text-muted)] hover:bg-[var(--color-bg-muted)] hover:text-[var(--color-text)]"
-              >
-                {collapsed ? 'Expand' : 'Minimize'}
-              </button>
             </div>
           </div>
 
-          {!collapsed && <NarrationContent narration={narration.narration} />}
+          <p className="text-sm leading-snug text-[var(--color-text-muted)]">
+            {walkthroughClip(narration.narration.happening, 140)}
+          </p>
 
-          {isInteractive && !collapsed && (
+          {isInteractive && (
             <>
               <div className="mt-3 h-1 overflow-hidden rounded-full bg-[var(--color-border-subtle)]">
                 <motion.div

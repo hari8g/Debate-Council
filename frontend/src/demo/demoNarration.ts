@@ -60,8 +60,9 @@ const SUBSTEP_NARRATION: Record<string, Omit<DemoNarration, 'eyebrow'>> = {
   },
   s1_derived: {
     title: 'Derived behavioural signals',
-    happening: 'Compressing 72 posts into composite metrics: volatility, engagement slope, topic drift, cadence.',
-    why: 'Agents and Stage 3 use these scalars as quick behavioural fingerprints before deep reading.',
+    happening:
+      'Seven deterministic metrics from 72 posts — four colour-highlighted (regularity, engagement slope, topic drift, volatility) as Stage 3 projection inputs.',
+    why: 'Debate agents read the full set; Stage 3 state estimation weights the highlighted drivers when fusing measured vs inferred behaviour.',
     stage: 1,
     substepId: 's1_derived',
   },
@@ -98,8 +99,9 @@ const SUBSTEP_NARRATION: Record<string, Omit<DemoNarration, 'eyebrow'>> = {
   },
   s2_synthesis: {
     title: 'Round 3 — Evidentiary synthesis',
-    happening: 'Merging six revised analyses into synthesis claim cards with supporting evidence tags.',
-    why: 'Synthesis is the evidentiary merge — consensus claims backed by debate, not yet the full persona tab.',
+    happening:
+      'Live glass Round 3 panel — confidence slope chart and synthesis feed update while progress streams; unified claims appear when synthesis completes.',
+    why: 'Synthesis is the evidentiary merge — consensus claims backed by debate, before the structured persona tab.',
     stage: 2,
     substepId: 's2_synthesis',
     debatePhase: 'synthesis',
@@ -114,8 +116,9 @@ const SUBSTEP_NARRATION: Record<string, Omit<DemoNarration, 'eyebrow'>> = {
   },
   s3_state: {
     title: '6D state vector estimation',
-    happening: 'Mapping each post onto valence, arousal, stability, connectivity, engagement, and ideological salience.',
-    why: 'The six-dimensional state is the coordinate system for all dynamical modelling ahead.',
+    happening:
+      'Mapping posts onto six behavioural dimensions — initialized using the four highlighted derived drivers from Stage 1.',
+    why: 'The six-dimensional state is the coordinate system for OU fitting, strains, and Monte Carlo ahead.',
     stage: 3,
     substepId: 's3_state',
   },
@@ -181,7 +184,7 @@ const DEBATE_INTRO: DemoNarration = {
   eyebrow: 'Debate council · Stage 2',
   title: 'How the council works',
   happening:
-    'Stage 1 is complete — six agents now read the same evidence independently, cross-examine each other, revise opinions, and synthesize a unified persona.',
+    'Stage 1 is pre-seeded (matrix + four highlighted Stage 3 driver metrics). Six agents cross-examine, revise, then Round 3 synthesis streams live on the glass panel and debate rail.',
   why: 'This is the epistemic core of North Star: disagreement is a feature, not a bug.',
   stage: 2,
   debatePhase: 'idle',

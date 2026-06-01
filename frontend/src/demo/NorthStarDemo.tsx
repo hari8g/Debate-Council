@@ -157,7 +157,7 @@ export function NorthStarDemo() {
               : experience === 'debate'
                 ? 'Start debate council demo'
                 : experience === 'guided'
-                  ? 'Start deep dive'
+                  ? 'Start walkthrough'
                   : 'Start free run'}
           </button>
 
@@ -167,8 +167,8 @@ export function NorthStarDemo() {
 
           <div className="mt-8 grid gap-2 text-left sm:grid-cols-3">
             {[
-              ['Empirical', 'Signal matrix · engagement depth · derived metrics'],
-              ['Interpretive', 'Delphi debate council · persona synthesis'],
+              ['Empirical', 'Signal matrix · Stage 3 driver metrics (4 highlighted) · engagement depth'],
+              ['Interpretive', 'Debate R1–R3 glass panels · live synthesis · unified persona'],
               ['Dynamical', 'OU + SIR strains · ensemble Monte Carlo'],
             ].map(([title, desc]) => (
               <div key={title} className="rounded-xl border border-[var(--color-border-subtle)] bg-white/60 p-3 text-xs backdrop-blur-sm">

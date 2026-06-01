@@ -407,14 +407,9 @@ export const useAnalysisStore = create<AnalysisStore>((set, get) => ({
         }
         if (id === 's2_synthesis' && payload) {
           updates.personaModel = payload as unknown as PersonaModel;
-          if (stages[2]?.substeps.s2_persona) {
-            stages[2].substeps.s2_persona = {
-              ...stages[2].substeps.s2_persona,
-              status: 'complete',
-              payload,
-            };
-            updates.stages = stages;
-          }
+        }
+        if (id === 's2_persona' && payload) {
+          updates.personaModel = payload as unknown as PersonaModel;
         }
         if (id === 's3_ou' && payload) updates.ouParams = payload as unknown as OuParameters;
         if (id === 's3_portrait' && payload) updates.phasePortrait = payload as unknown as PhasePortrait;

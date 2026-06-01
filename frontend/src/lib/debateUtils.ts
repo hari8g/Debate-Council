@@ -31,7 +31,7 @@ type PersonaSectionKey =
   | 'cultural_identity'
   | 'temporal_state';
 
-const AGENT_PERSONA_SECTIONS: Record<string, readonly PersonaSectionKey[]> = {
+export const AGENT_PERSONA_SECTIONS: Record<string, readonly PersonaSectionKey[]> = {
   psychographer: ['psychological_profile', 'core_identity'],
   sociologist: ['social_strategy'],
   narrative_analyst: ['narrative_self_model'],

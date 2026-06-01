@@ -33,6 +33,9 @@ function evt(type: PipelineEvent['type'], data: Record<string, unknown>, ts: num
 
 let cachedFixture: DemoFixture | null = null;
 let cachedEvents: PipelineEvent[] | null = null;
+/** Bump when event sequencing changes so hot-reload picks up new demo timelines. */
+const DEMO_EVENTS_BUILD_ID = 4;
+let cachedEventsBuildId: number | null = null;
 
 export function getDemoFixture(): DemoFixture {
   if (!cachedFixture) cachedFixture = buildDemoFixture();
@@ -40,7 +43,7 @@ export function getDemoFixture(): DemoFixture {
 }
 
 export function buildDemoEvents(fixture = getDemoFixture()): PipelineEvent[] {
-  if (cachedEvents) return cachedEvents;
+  if (cachedEvents && cachedEventsBuildId === DEMO_EVENTS_BUILD_ID) return cachedEvents;
 
   const { report, intermediate_payloads: p } = fixture;
   const events: PipelineEvent[] = [];
@@ -140,7 +143,31 @@ export function buildDemoEvents(fixture = getDemoFixture()): PipelineEvent[] {
     } else if (id === 's1_matrix') {
       events.push(evt('SUBSTEP_COMPLETE', { stage: 1, id, payload: p.s1_matrix }, bump(0.45)));
     } else if (id === 's1_derived') {
-      events.push(evt('SUBSTEP_COMPLETE', { stage: 1, id, payload: p.s1_derived }, bump(0.4)));
+      events.push(
+        evt(
+          'SUBSTEP_PROGRESS',
+          {
+            stage: 1,
+            id,
+            message: 'Computing posting regularity & engagement slope…',
+            percent: 38,
+          },
+          bump(0.1),
+        ),
+      );
+      events.push(
+        evt(
+          'SUBSTEP_PROGRESS',
+          {
+            stage: 1,
+            id,
+            message: 'Scoring topic drift & emotional volatility (Stage 3 drivers)…',
+            percent: 78,
+          },
+          bump(0.12),
+        ),
+      );
+      events.push(evt('SUBSTEP_COMPLETE', { stage: 1, id, payload: p.s1_derived }, bump(0.32)));
     } else if (id === 's1_summary') {
       events.push(evt('SUBSTEP_COMPLETE', { stage: 1, id, payload: p.s1_summary }, bump(0.35)));
     }
@@ -218,8 +245,56 @@ export function buildDemoEvents(fixture = getDemoFixture()): PipelineEvent[] {
   events.push(evt('SUBSTEP_COMPLETE', { stage: 2, id: 's2_defense', payload: { count: revised.length } }, bump(0.1)));
 
   events.push(evt('SUBSTEP_START', { stage: 2, id: 's2_synthesis', label: 'Round 3: Synthesis' }, bump(0.05)));
-  events.push(evt('SUBSTEP_COMPLETE', { stage: 2, id: 's2_synthesis', payload: p.s2_synthesis }, bump(0.6)));
+  events.push(
+    evt(
+      'SUBSTEP_PROGRESS',
+      {
+        stage: 2,
+        id: 's2_synthesis',
+        message: 'Merging six revised analyses…',
+        percent: 25,
+      },
+      bump(0.08),
+    ),
+  );
+  events.push(
+    evt(
+      'SUBSTEP_PROGRESS',
+      {
+        stage: 2,
+        id: 's2_synthesis',
+        message: 'LLM synthesising unified PersonaModel…',
+        percent: 55,
+      },
+      bump(0.12),
+    ),
+  );
+  events.push(
+    evt(
+      'SUBSTEP_PROGRESS',
+      {
+        stage: 2,
+        id: 's2_synthesis',
+        message: 'Building synthesis claim cards…',
+        percent: 88,
+      },
+      bump(0.1),
+    ),
+  );
+  events.push(evt('SUBSTEP_COMPLETE', { stage: 2, id: 's2_synthesis', payload: p.s2_synthesis }, bump(0.28)));
   events.push(evt('SUBSTEP_START', { stage: 2, id: 's2_persona', label: 'Unified persona model' }, bump(0.05)));
+  events.push(
+    evt(
+      'SUBSTEP_PROGRESS',
+      {
+        stage: 2,
+        id: 's2_persona',
+        message: 'Structuring identity, psychology & 6D state…',
+        percent: 60,
+      },
+      bump(0.1),
+    ),
+  );
   events.push(evt('SUBSTEP_COMPLETE', { stage: 2, id: 's2_persona', payload: p.s2_persona }, bump(0.15)));
 
   events.push(
@@ -292,6 +367,7 @@ export function buildDemoEvents(fixture = getDemoFixture()): PipelineEvent[] {
   events.push(evt('JOB_COMPLETE', { report }, bump(0.1)));
 
   cachedEvents = events;
+  cachedEventsBuildId = DEMO_EVENTS_BUILD_ID;
   return events;
 }
 

@@ -2,6 +2,9 @@ import type { DerivedSignals } from '../types/report';
 
 export type MetricHealth = 'strong' | 'moderate' | 'weak' | 'insufficient';
 
+/** Keys for the four derived metrics that feed Stage 3 projection. */
+export type Stage3DriverKey = 'posting_regularity' | 'emotional_volatility' | 'engagement_slope' | 'topic_drift';
+
 export interface MetricInterpretation {
   label: string;
   value: number;
@@ -10,6 +13,8 @@ export interface MetricInterpretation {
   meaning: string;
   formula: string;
   howToRead: string;
+  /** Highlighted as a Stage 3 state-estimation input. */
+  stage3Driver?: Stage3DriverKey;
 }
 
 function healthFromRange(value: number, low: number, high: number, invert = false): MetricHealth {
@@ -28,6 +33,7 @@ export function interpretDerivedSignals(
   return [
     {
       label: 'Posting Regularity',
+      stage3Driver: 'posting_regularity',
       value: signals.posting_regularity,
       formatted: signals.posting_regularity.toFixed(2),
       health: lowData ? 'insufficient' : healthFromRange(signals.posting_regularity, 0.35, 0.65),
@@ -43,6 +49,7 @@ export function interpretDerivedSignals(
     },
     {
       label: 'Emotional Volatility',
+      stage3Driver: 'emotional_volatility',
       value: signals.emotional_volatility,
       formatted: signals.emotional_volatility.toFixed(2),
       health: lowData ? 'insufficient' : signals.emotional_volatility > 0.25 ? 'strong' : signals.emotional_volatility > 0.08 ? 'moderate' : 'weak',
@@ -56,6 +63,7 @@ export function interpretDerivedSignals(
     },
     {
       label: 'Engagement Slope',
+      stage3Driver: 'engagement_slope',
       value: signals.engagement_slope,
       formatted: signals.engagement_slope.toFixed(4),
       health: lowData ? 'insufficient' : Math.abs(signals.engagement_slope) > 0.001 ? 'moderate' : 'weak',
@@ -95,6 +103,7 @@ export function interpretDerivedSignals(
     },
     {
       label: 'Topic Drift',
+      stage3Driver: 'topic_drift',
       value: signals.topic_drift_score,
       formatted: signals.topic_drift_score.toFixed(2),
       health: lowData ? 'insufficient' : signals.topic_drift_score > 0.7 ? 'strong' : signals.topic_drift_score > 0.4 ? 'moderate' : 'weak',
@@ -135,3 +144,22 @@ export const HEALTH_LABELS: Record<MetricHealth, string> = {
   weak: 'Weak signal',
   insufficient: 'Need more posts',
 };
+
+/** Distinct card backgrounds for Stage 3 driver metrics (derived signals panel). */
+export const STAGE3_DRIVER_CARD_STYLES: Record<Stage3DriverKey, string> = {
+  posting_regularity:
+    'border-sky-500/35 bg-sky-500/12 ring-1 ring-sky-500/15 hover:border-sky-500/45',
+  emotional_volatility:
+    'border-rose-500/35 bg-rose-500/12 ring-1 ring-rose-500/15 hover:border-rose-500/45',
+  engagement_slope:
+    'border-emerald-500/35 bg-emerald-500/12 ring-1 ring-emerald-500/15 hover:border-emerald-500/45',
+  topic_drift:
+    'border-amber-500/35 bg-amber-500/12 ring-1 ring-amber-500/15 hover:border-amber-500/45',
+};
+
+export const STAGE3_DRIVER_LEGEND: { key: Stage3DriverKey; label: string; swatch: string }[] = [
+  { key: 'posting_regularity', label: 'Posting regularity', swatch: 'bg-sky-500' },
+  { key: 'engagement_slope', label: 'Engagement slope', swatch: 'bg-emerald-500' },
+  { key: 'topic_drift', label: 'Topic drift', swatch: 'bg-amber-500' },
+  { key: 'emotional_volatility', label: 'Emotional volatility', swatch: 'bg-rose-500' },
+];

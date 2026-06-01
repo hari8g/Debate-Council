@@ -3,22 +3,18 @@ import type { PipelineEvent } from '../types/report';
 import {
   highlightForCallout,
   introCalloutFromEvent,
-  interactiveReviewCalloutFromEvent,
   isGuidedIntroCheckpoint,
   isGuidedReviewCheckpoint,
   reviewCalloutFromEvent,
+  walkthroughExtraReviewCalloutFromEvent,
   STAGE_NAMES,
   type DemoCallout,
   type DemoHighlight,
 } from './demoCallouts';
 import {
-  interactiveCalloutDurationMs,
-  interactiveGapBeforeMs,
-  isInteractiveFinaleEvent,
-  isInteractiveIntroCheckpoint,
-  isInteractiveReviewCheckpoint,
   isDebateIntroCheckpoint,
   isDebateReviewCheckpoint,
+  walkthroughGapBeforeMs,
   type DemoExperience,
 } from './demoExperience';
 import { buildDemoEvents, buildDebateCouncilEvents, buildStage1SeedEvents, getDemoFixture, rerunEventsForStage } from './buildDemoEvents';
@@ -72,6 +68,8 @@ let debateRailState = {
   challengesTotal: 30,
   defensesDone: 0,
   synthesisDone: false,
+  synthesisPercent: 0,
+  synthesisMessage: '',
   personaDone: false,
 };
 
@@ -181,8 +179,25 @@ function syncDebateRailFromEvent(event: PipelineEvent) {
     if (id === 's2_agents') debateRailState = { ...debateRailState, phase: 'hypotheses', agentsReady: 0 };
     if (id === 's2_challenge') debateRailState = { ...debateRailState, phase: 'challenge', challengesDone: 0 };
     if (id === 's2_defense') debateRailState = { ...debateRailState, phase: 'defense', defensesDone: 0 };
-    if (id === 's2_synthesis') debateRailState = { ...debateRailState, phase: 'synthesis' };
+    if (id === 's2_synthesis') {
+      debateRailState = {
+        ...debateRailState,
+        phase: 'synthesis',
+        synthesisDone: false,
+        synthesisPercent: 0,
+        synthesisMessage: 'Merging six revised analyses…',
+      };
+    }
     if (id === 's2_persona') debateRailState = { ...debateRailState, phase: 'persona' };
+  }
+
+  if (event.type === 'SUBSTEP_PROGRESS' && id === 's2_synthesis') {
+    debateRailState = {
+      ...debateRailState,
+      phase: 'synthesis',
+      synthesisPercent: (event.data.percent as number) ?? debateRailState.synthesisPercent,
+      synthesisMessage: (event.data.message as string) ?? debateRailState.synthesisMessage,
+    };
   }
 
   if (event.type === 'SUBSTEP_COMPLETE' && id.startsWith('s2_agent_')) {
@@ -195,7 +210,12 @@ function syncDebateRailFromEvent(event: PipelineEvent) {
     debateRailState = { ...debateRailState, defensesDone: debateRailState.defensesDone + 1 };
   }
   if (event.type === 'SUBSTEP_COMPLETE' && id === 's2_synthesis') {
-    debateRailState = { ...debateRailState, synthesisDone: true };
+    debateRailState = {
+      ...debateRailState,
+      synthesisDone: true,
+      synthesisPercent: 100,
+      synthesisMessage: 'Synthesis complete',
+    };
   }
   if (event.type === 'SUBSTEP_COMPLETE' && id === 's2_persona') {
     debateRailState = { ...debateRailState, personaDone: true };
@@ -213,6 +233,8 @@ function resetDebateRail(active: boolean) {
     challengesTotal: 30,
     defensesDone: 0,
     synthesisDone: false,
+    synthesisPercent: 0,
+    synthesisMessage: '',
     personaDone: false,
   };
 }

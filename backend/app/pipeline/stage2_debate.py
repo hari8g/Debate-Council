@@ -244,18 +244,36 @@ Return JSON with challenge_summary, contradiction, weakest_link, refutation_data
     emit(substep_complete(job_id, time.time(), 2, "s2_defense", {"count": len(revised)}))
 
     emit(substep_start(job_id, time.time(), 2, "s2_synthesis", "Round 3: Synthesis"))
+    emit(substep_progress(
+        job_id, time.time(), 2, "s2_synthesis",
+        "Merging six revised analyses into council synthesis…",
+        percent=15,
+    ))
 
     synth_prompt = f"""Six revised analyses after debate:
 {chr(10).join(f'{r.agent}: {r.revised_analysis.get("key_claim", r.revised_analysis.get("revised_hypothesis", ""))} (conf: {r.revised_analysis.get("confidence", 0.5)})' for r in revised)}
 
 Profile: {len(matrix.captions)} posts, regularity {derived.posting_regularity:.2f}, volatility {derived.emotional_volatility:.2f}
 Produce unified PersonaModel JSON."""
+    emit(substep_progress(
+        job_id, time.time(), 2, "s2_synthesis",
+        "LLM synthesising unified PersonaModel…",
+        percent=55,
+    ))
     synth_result = await call_llm_async(SYNTHESIS_SYSTEM, synth_prompt)
     if not isinstance(synth_result, dict):
         synth_result = {}
     persona = _build_persona_model(synth_result)
 
+    emit(substep_progress(
+        job_id, time.time(), 2, "s2_synthesis",
+        "Synthesis complete — structuring persona model…",
+        percent=92,
+    ))
     emit(substep_complete(job_id, time.time(), 2, "s2_synthesis", persona.model_dump(mode="json")))
+
+    emit(substep_start(job_id, time.time(), 2, "s2_persona", "Unified persona model"))
+    emit(substep_complete(job_id, time.time(), 2, "s2_persona", persona.model_dump(mode="json")))
 
     debate = DebateRecord(
         original_hypotheses=hypotheses,

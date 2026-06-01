@@ -59,7 +59,7 @@ export function SubstepDetailPanel() {
     const hyps =
       (sub.payload?.hypotheses as AgentHypothesis[] | undefined) ?? agentHypotheses;
     return (
-      <div className="mb-6">
+      <div className="mb-6 min-w-0 w-full">
         <div className="mb-3 flex items-center justify-between gap-3">
           <p className="text-xs text-[var(--color-text-muted)]">{meta.did}</p>
           <button
@@ -80,7 +80,7 @@ export function SubstepDetailPanel() {
     const hyps =
       (sub.payload?.hypotheses as AgentHypothesis[] | undefined) ?? agentHypotheses;
     return (
-      <div className="mb-6">
+      <div className="mb-6 min-w-0 w-full">
         <div className="mb-3 flex items-center justify-between gap-3">
           <p className="text-xs text-[var(--color-text-muted)]">{meta.did}</p>
           <button
@@ -103,7 +103,7 @@ export function SubstepDetailPanel() {
 
   if (sub.id === 's2_defense') {
     return (
-      <div className="mb-6">
+      <div className="mb-6 min-w-0 w-full">
         <div className="mb-3 flex items-center justify-between gap-3">
           <p className="text-xs text-[var(--color-text-muted)]">{meta.did}</p>
           <button
@@ -127,15 +127,12 @@ export function SubstepDetailPanel() {
 
   if (sub.id === 's2_persona' && personaModel) {
     return (
-      <div className="mb-6">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <p className="text-xs text-[var(--color-text-muted)]">
-            The unified persona model merges six revised agent readings into one structured profile.
-          </p>
+      <div className="mb-6 min-w-0 w-full">
+        <div className="mb-2 flex justify-end">
           <button
             type="button"
             onClick={() => setSelectedSubstep(null)}
-            className="rounded-md p-1 text-[var(--color-text-muted)] hover:bg-[var(--color-bg-muted)] hover:text-[var(--color-text)]"
+            className="rounded-lg border border-white/50 bg-white/60 p-2 text-[var(--color-text-muted)] backdrop-blur-sm hover:text-[var(--color-text)]"
             title="Show all pipeline data"
           >
             <X className="h-4 w-4" />
@@ -146,9 +143,9 @@ export function SubstepDetailPanel() {
     );
   }
 
-  if (sub.id === 's2_synthesis' && personaModel) {
+  if (sub.id === 's2_synthesis') {
     return (
-      <div className="mb-6">
+      <div className="mb-6 min-w-0 w-full">
         <div className="mb-3 flex items-center justify-between gap-3">
           <p className="text-xs text-[var(--color-text-muted)]">{meta.did}</p>
           <button
@@ -165,6 +162,7 @@ export function SubstepDetailPanel() {
           challenges={challenges}
           revised={revisedHypotheses}
           persona={personaModel}
+          synthesisSubstep={sub}
         />
       </div>
     );
@@ -172,7 +170,7 @@ export function SubstepDetailPanel() {
 
   if (sub.id.startsWith('s3_') && CANONICAL_S3.has(sub.id)) {
     return (
-      <div className="mb-6">
+      <div className="mb-6 min-w-0 w-full">
         <div className="mb-3 flex justify-end">
           <button
             type="button"
@@ -385,15 +383,14 @@ function SubstepContent({
       );
 
     case 's2_synthesis':
-      return personaModel ? (
+      return (
         <Round3LivePanel
           hypotheses={agentHypotheses}
           challenges={challenges}
           revised={revisedHypotheses}
           persona={personaModel}
+          synthesisSubstep={sub}
         />
-      ) : (
-        <PayloadPreview payload={p} />
       );
 
     case 's2_persona':

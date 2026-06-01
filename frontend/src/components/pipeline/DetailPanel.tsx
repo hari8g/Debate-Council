@@ -55,8 +55,8 @@ export function DetailPanel() {
     futureState;
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="mb-4 flex gap-1 border-b border-[var(--color-border)] pb-3">
+    <div className="flex h-full min-h-0 min-w-0 flex-col">
+      <div className="mb-4 flex shrink-0 gap-1 border-b border-[var(--color-border)] pb-3">
         {visibleTabs.map((tab) => (
           <button
             key={tab.id}
@@ -87,7 +87,7 @@ export function DetailPanel() {
       {detailPanelTab === 'errors' ? (
         <ErrorConsole />
       ) : detailPanelTab === 'report' && showReportTab ? (
-        <div className="flex-1 overflow-y-auto pr-2">
+        <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden pr-1 lg:pr-2">
           <ConsolidatedReportView />
         </div>
       ) : (
@@ -159,7 +159,7 @@ function LivePanel({
   }
 
   return (
-    <div className="flex-1 space-y-8 overflow-y-auto pr-2">
+    <div className="min-h-0 min-w-0 flex-1 space-y-8 overflow-y-auto overflow-x-hidden pr-1 lg:pr-2">
       {selectedSubstepId && <SubstepDetailPanel />}
 
       {!selectedSubstepId && (

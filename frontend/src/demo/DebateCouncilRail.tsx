@@ -63,11 +63,19 @@ export function DebateCouncilRail({ embedded = false }: { embedded?: boolean }) 
             {rail.defensesDone}/{AGENTS.length} revisions
           </p>
         )}
+        {rail.phase === 'synthesis' && (
+          <p className="max-w-[min(280px,45vw)] truncate font-mono text-[10px] tabular-nums text-[var(--color-text-muted)]" title={rail.synthesisMessage}>
+            {rail.synthesisPercent > 0 ? `${Math.round(rail.synthesisPercent)}%` : '…'} · {rail.synthesisMessage || 'Synthesising'}
+          </p>
+        )}
       </div>
 
       <div className="mb-3 grid grid-cols-5 gap-1.5">
         {PHASES.map((phase, idx) => {
-          const done = currentIdx > idx || (phase.id === 'persona' && rail.personaDone);
+          const done =
+            currentIdx > idx ||
+            (phase.id === 'synthesis' && rail.synthesisDone) ||
+            (phase.id === 'persona' && rail.personaDone);
           const active = rail.phase === phase.id;
           const Icon = phase.icon;
           return (

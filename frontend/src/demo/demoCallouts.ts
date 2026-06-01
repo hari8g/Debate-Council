@@ -59,7 +59,7 @@ const SUBSTEP_STAGE: Record<string, number> = Object.fromEntries(
   [...CANONICAL_SUBSTEPS].map((id) => [id, id.startsWith('s1_') ? 1 : id.startsWith('s2_') ? 2 : 3]),
 );
 
-const SUBSTEP_ORDER_BY_STAGE: Record<number, string[]> = {
+export const SUBSTEP_ORDER_BY_STAGE: Record<number, string[]> = {
   1: ['s1_resolve', 's1_metadata', 's1_posts', 's1_stories', 's1_engagement', 's1_matrix', 's1_derived', 's1_summary'],
   2: ['s2_agents', 's2_challenge', 's2_defense', 's2_synthesis', 's2_persona'],
   3: ['s3_state', 's3_ou', 's3_portrait', 's3_strains', 's3_monte', 's3_narrative'],
@@ -129,20 +129,20 @@ const STAGE_CALLOUTS: Record<number, CalloutContent> = {
     whyItMatters:
       'Everything downstream — agent debate and dynamical modelling — depends on the quality and completeness of this signal layer.',
     deepDive:
-      'Stage 1 is pure ingestion and feature engineering. No LLM persona inference yet. The signal matrix is the shared evidence base: one row per post, columns for text, hashtags, engagement, and timing.',
+      'Stage 1 is pure ingestion and feature engineering. Derived signals include four colour-highlighted Stage 3 drivers (regularity, engagement slope, topic drift, volatility).',
     inputs: 'Instagram profile URL → @demo_creator',
-    outputs: 'Signal matrix, derived signals, signal summary',
+    outputs: 'Signal matrix, derived signals (incl. Stage 3 drivers), signal summary',
     badge: 'Stage 1',
   },
   2: {
     title: 'Stage 2 — Multi-agent debate council',
     doing:
       'Six specialist agents read the Stage 1 summary independently, then stress-test each other in three debate rounds before merging into a unified persona model.',
-    lookFor: 'Agent cards stream in, then Round 1/2/3 panels. Individual challenges appear as nested timeline items between callouts.',
+    lookFor: 'Agent intro, then Round 1/2/3 glass live panels (portal + feed). Synthesis streams progress on the debate rail.',
     whyItMatters:
       'Single-model analysis can hallucinate coherence. The council forces disagreement, revision, and explicit synthesis.',
     deepDive:
-      'Round 1 generates 30 challenges (every agent × every other agent). Round 2 produces six revised hypotheses. Round 3 merges claims into synthesis cards and a structured PersonaModel.',
+      'Round 1: 30 challenges. Round 2: six revised hypotheses. Round 3: live synthesis panel + PersonaModel, then the Unified persona substep.',
     inputs: 'Signal summary + matrix samples from Stage 1',
     outputs: 'Agent hypotheses, debate record, persona model',
     badge: 'Stage 2',
@@ -251,12 +251,16 @@ const SUBSTEP_CALLOUTS: Record<string, CalloutContent> = {
   },
   s1_derived: {
     title: 'Compute derived signals',
-    doing: 'Aggregates matrix into composite metrics: posting regularity, emotional volatility, engagement slope, topic drift, caption length trends.',
-    lookFor: 'DerivedMetrics tiles with directional indicators (↑ ↓ →).',
-    whyItMatters: 'Agents and Stage 3 use these aggregates as quick behavioural fingerprints.',
-    deepDive: 'Derived signals compress 72 posts into ~15 interpretable scalars and trend labels.',
+    doing:
+      'Aggregates the matrix into seven deterministic metrics. Four are colour-highlighted as Stage 3 projection inputs: posting regularity (sky), engagement slope (emerald), topic drift (amber), emotional volatility (rose).',
+    lookFor:
+      'DerivedMetrics panel — legend “Stage 3 projection inputs” plus four tinted cards with Stage 3 badges (not the generic grey tiles).',
+    whyItMatters:
+      'Debate agents read the full set; Stage 3 OU/Monte Carlo initialization weights these four drivers when estimating behavioural state.',
+    deepDive:
+      'Demo fixture: regularity 0.42, engagement slope −0.003, topic drift 0.58, volatility 0.61 — tuned for a civic-commentary profile with episodic bursts.',
     inputs: 'Signal matrix',
-    outputs: 'DerivedSignals object',
+    outputs: 'DerivedSignals → agents + Stage 3 state estimator',
     badge: 'Stage 1',
   },
   s1_summary: {
@@ -299,11 +303,13 @@ const SUBSTEP_CALLOUTS: Record<string, CalloutContent> = {
   },
   s2_synthesis: {
     title: 'Round 3 — Synthesis',
-    doing: 'Merges six revised analyses into synthesis claim cards and debate trajectory visualizations — the evidentiary merge, not yet the full persona tab layout.',
-    lookFor: 'Round3LivePanel claim cards with supporting evidence tags.',
-    whyItMatters: 'Synthesis is the evidentiary merge before structural persona modeling.',
+    doing:
+      'Streams SUBSTEP_PROGRESS while merging six revised analyses — live Round3LivePanel with confidence slope chart, agent orbit, and synthesis feed (spinner until PersonaModel lands).',
+    lookFor:
+      'Round3LivePanel (glass layout): scrollable synthesis portal + feed. During the run: “Synthesis in progress” and R2 arcs; after complete: council summary and per-agent R3 claims.',
+    whyItMatters: 'Synthesis is the evidentiary merge before the structured Unified persona tab.',
     inputs: 'Revised hypotheses + debate record',
-    outputs: 'Synthesis claims + PersonaModel seed',
+    outputs: 'PersonaModel (synthesis) → s2_persona packaging',
     badge: 'Stage 2',
   },
   s2_persona: {
@@ -318,11 +324,13 @@ const SUBSTEP_CALLOUTS: Record<string, CalloutContent> = {
   },
   s3_state: {
     title: 'State vector estimation',
-    doing: 'Maps each post onto six dimensions: valence, arousal, stability, connectivity, engagement intensity, ideological salience — then fuses measured vs LLM-inferred state.',
+    doing:
+      'Maps each post onto six dimensions, fusing measured engagement with persona inference — seeded by the four highlighted derived drivers from Stage 1.',
     lookFor: 'StateVector chart + behavioural fusion panel (measured / inferred / fused).',
     whyItMatters: 'The 6D state is the coordinate system for all Stage 3 dynamics.',
-    deepDive: 'Fusion weight balances observable engagement signals with persona-informed inference. Demo: 55% measured, 45% inferred.',
-    inputs: 'Signal matrix + persona model',
+    deepDive:
+      'Fusion weight balances observable signals with persona-informed inference. Demo: 55% measured, 45% inferred. Drivers: posting regularity, engagement slope, topic drift, emotional volatility.',
+    inputs: 'Signal matrix + persona model + derived drivers',
     outputs: 'Fused 6D state time series',
     badge: 'Stage 3',
   },
@@ -397,7 +405,18 @@ export function isGuidedIntroCheckpoint(event: PipelineEvent): boolean {
 }
 
 export function isGuidedReviewCheckpoint(event: PipelineEvent): boolean {
-  return event.type === 'SUBSTEP_COMPLETE' && CANONICAL_SUBSTEPS.has(String(event.data.id));
+  if (event.type !== 'SUBSTEP_COMPLETE') return false;
+  const id = String(event.data.id ?? '');
+  if (CANONICAL_SUBSTEPS.has(id)) return true;
+  if (id.startsWith('s2_defense_')) return true;
+  if (id.startsWith('s3_strain_')) return true;
+  return false;
+}
+
+export function getSubstepCalloutBrief(substepId: string): { title: string; doing: string } | null {
+  const meta = SUBSTEP_CALLOUTS[substepId];
+  if (!meta) return null;
+  return { title: meta.title, doing: meta.doing };
 }
 
 export function highlightForCallout(callout: DemoCallout): DemoHighlight {
@@ -480,7 +499,7 @@ export function reviewCalloutFromEvent(event: PipelineEvent): DemoCallout | null
     title: `Review · ${meta.title}`,
     pipelineState: pipelineStateLabel(stage, id, meta.title),
     stateLabel: 'Complete — inspect the output panel',
-    doing: `This substep finished running. The detail panel on the right now shows the ${meta.title.toLowerCase()} output. Take a moment to read the visualization before continuing.`,
+    doing: `Inspect the ${meta.title.toLowerCase()} output in the right panel.`,
     lookFor: meta.lookFor,
     whyItMatters: meta.whyItMatters,
     deepDive: meta.deepDive,
@@ -490,7 +509,8 @@ export function reviewCalloutFromEvent(event: PipelineEvent): DemoCallout | null
   };
 }
 
-export function interactiveReviewCalloutFromEvent(event: PipelineEvent): DemoCallout | null {
+/** Extra review callouts for per-agent defense / per-strain completions during walkthrough. */
+export function walkthroughExtraReviewCalloutFromEvent(event: PipelineEvent): DemoCallout | null {
   const canonical = reviewCalloutFromEvent(event);
   if (canonical) return canonical;
 
@@ -507,13 +527,10 @@ export function interactiveReviewCalloutFromEvent(event: PipelineEvent): DemoCal
       title: `Review · ${label} revised hypothesis`,
       pipelineState: `Stage 2 · Round 2 · ${label} (6/6 agents revising)`,
       stateLabel: 'Complete — inspect the output panel',
-      doing: `${label} absorbed all incoming challenges and published a revised claim. Confidence may have shifted up or down — concessions note where evidence was weak.`,
-      lookFor: `Round2LivePanel — locate ${label}. Compare original vs revised hypothesis text, confidence bar delta, and any concession bullets.`,
-      whyItMatters:
-        'Round 2 is where opinions actually change. Agents that soften claims here were stress-tested; agents that hold firm earned it through defense.',
-      deepDive:
-        'Each revision is a structured LLM call with the full challenge bundle as context — not a single summary paragraph. Watch for confidence calibration: overconfident agents often drop sharply after cross-exam.',
-      outputs: 'RevisedHypothesis with confidence_before, confidence_after, revision_summary',
+      doing: `${label} published a revised hypothesis after cross-examination.`,
+      lookFor: `Round2LivePanel — ${label}: before/after confidence and revision text.`,
+      whyItMatters: 'Round 2 is where opinions actually change.',
+      outputs: 'RevisedHypothesis',
       badge: 'Round 2',
     };
   }
@@ -527,13 +544,10 @@ export function interactiveReviewCalloutFromEvent(event: PipelineEvent): DemoCal
       title: `Review · ${strainKey} belief strain`,
       pipelineState: `Stage 3 · Narrative strains · ${strainKey}`,
       stateLabel: 'Complete — inspect the output panel',
-      doing: `A recurring hashtag/caption theme (“${strainKey}”) was clustered and fitted with SIR-style momentum parameters — spread β, decay γ, and reproduction number R₀.`,
-      lookFor: `StrainCards — ${strainKey} card shows R₀, trend label (expanding/stable/contracting), activation sparkline, and peak date.`,
-      whyItMatters:
-        'Strains inject narrative shocks into Monte Carlo — a politically expanding theme can pull valence/ideological dimensions even when mood OU dynamics would otherwise mean-revert.',
-      deepDive:
-        'SIR strains are independent of OU mood dimensions. They capture which story clusters are gaining or losing cultural momentum in this profile’s content.',
-      outputs: 'PersonalR0Estimate per strain → MC shock schedule',
+      doing: `Theme “${strainKey}” fitted with spread/decay and R₀.`,
+      lookFor: `StrainCards — ${strainKey}: R₀, trend, sparkline.`,
+      whyItMatters: 'Strains feed narrative shocks into Monte Carlo.',
+      outputs: 'PersonalR0Estimate',
       badge: 'Stage 3',
     };
   }
